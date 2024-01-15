@@ -46,7 +46,6 @@ CREATE TABLE plays (
     teamId INT REFERENCES teams(teamId) ON DELETE SET NULL,
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    sessionId INT REFERENCES sessions(sessionId) ON DELETE SET NULL,
     PRIMARY KEY(playerId)
 );
 
@@ -116,36 +115,33 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION add_people_to_team(team_id INT, game_id INT)
 RETURNS VOID AS $$
 DECLARE
-    	c INT := 1;
 	maxPinT_value INT;
 	players_needed INT;
 BEGIN
-    	SELECT maxPinT INTO maxPinT_value
-    	FROM sessions s
+    SELECT maxPinT INTO maxPinT_value
+	FROM sessions
 	WHERE active = B'1';
 
-    	SELECT (maxPinT_value - COUNT(*)) INTO players_needed
-    	FROM plays
-    	WHERE teamId = team_id AND gameId = game_id;
+    SELECT (maxPinT_value - COUNT(*)) INTO players_needed
+	FROM plays
+	WHERE teamId = team_id AND gameId = game_id;
 
-    	EXECUTE 'UPDATE plays
-        	SET teamId = $1, gameId = $2
-             	FROM (
-                 	SELECT playerId, ROW_NUMBER() OVER () AS random_order
-                 	FROM (
-                     		SELECT playerId
-                     		FROM players
-                     		WHERE NOT EXISTS (
-                         		SELECT teamId
-                         		FROM plays
-                         		WHERE plays.playerId = players.playerId
-                     		)
-                     		ORDER BY RANDOM()
-                     		LIMIT $3
-                 	) AS random_players
-             	) AS selected_players
-             	WHERE plays.playerId = selected_players.playerId AND plays.teamId IS NULL AND plays.gameId IS NULL'
-    		USING team_id, game_id, players_needed;
+   	EXECUTE 
+        'UPDATE plays
+       	SET teamId = $1, gameId = $2
+       	FROM (
+          	SELECT playerId
+        	FROM players
+      		WHERE NOT EXISTS (
+           		SELECT teamId
+               	FROM plays
+            	WHERE plays.playerId = players.playerId
+        	)
+       		ORDER BY RANDOM()
+       		LIMIT $3
+       	) AS selected_players
+       	WHERE plays.playerId = selected_players.playerId AND plays.teamId IS NULL AND plays.gameId IS NULL'
+  	USING team_id, game_id, players_needed;
 END;
 $$ LANGUAGE plpgsql;
 

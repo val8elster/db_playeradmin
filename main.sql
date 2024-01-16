@@ -112,10 +112,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION assign_players_to_team() RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION assign_players_to_team() 
+RETURNS VOID AS $$
 DECLARE
     maxPinT INT;
     playerList INT[];
+	teami INT;
+	teamCursor CURSOR FOR
+        SELECT t.teamID
+        FROM teams t
+        WHERE t.active = B'1';
+    teamRecord RECORD;
 BEGIN
     SELECT maxPinT 
     FROM sessions 
@@ -129,18 +136,20 @@ BEGIN
         FROM plays x
     );
 
-    FOR team IN (
-        SELECT t.teamID
-        FROM teams t
-        WHERE t.active = B'1')
+    OPEN teamCursor;
+    FETCH teamCursor INTO teamRecord;
+    WHILE FOUND
     LOOP
-        FOR i INT IN 2..maxPinT
+        FOR i IN 1..maxPinT
         LOOP
+            teami := teamRecord.teamID;
             UPDATE plays
-            SET teamId = team
+            SET teamId = teamId
             WHERE playerId = playerList[i];
-        END LOOP
+        END LOOP;
+        FETCH teamCursor INTO teamRecord;
     END LOOP;
+    CLOSE teamCursor;
 END;
 $$ LANGUAGE plpgsql;
 

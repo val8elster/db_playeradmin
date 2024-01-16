@@ -112,38 +112,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION add_people_to_team(team_id INT, game_id INT)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION assign_players_to_team() RETURNS VOID AS $$
 DECLARE
-	maxPinT_value INT;
-	players_needed INT;
+    maxPinT INT;
+    playerList INT[];
 BEGIN
-    SELECT maxPinT INTO maxPinT_value
-	FROM sessions
-	WHERE active = B'1';
+    SELECT maxPinT 
+    FROM sessions 
+    WHERE active = B'1';
 
-    SELECT (maxPinT_value - COUNT(*)) INTO players_needed
-	FROM plays
-	WHERE teamId = team_id AND gameId = game_id;
+    SELECT ARRAY_AGG(p.playerId ORDER BY RANDOM()) 
+    INTO playerList
+    FROM players p
+    WHERE NOT EXISTS (
+        SELECT x.teamId
+        FROM plays x
+    );
 
-   	EXECUTE 
-        'UPDATE plays
-       	SET teamId = $1, gameId = $2
-       	FROM (
-          	SELECT playerId
-        	FROM players
-      		WHERE NOT EXISTS (
-           		SELECT teamId
-               	FROM plays
-            	WHERE plays.playerId = players.playerId
-        	)
-       		ORDER BY RANDOM()
-       		LIMIT $3
-       	) AS selected_players
-       	WHERE plays.playerId = selected_players.playerId AND plays.teamId IS NULL AND plays.gameId IS NULL'
-  	USING team_id, game_id, players_needed;
+    FOR team IN (
+        SELECT t.teamID
+        FROM teams t
+        WHERE t.active = B'1')
+    LOOP
+        FOR i INT IN 2..maxPinT
+        LOOP
+            UPDATE plays
+            SET teamId = team
+            WHERE playerId = playerList[i];
+        END LOOP
+    END LOOP;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
@@ -171,7 +171,7 @@ BEGIN
 
     	END LOOP;
 	RETURN NEW;
-	PERFORM add_people_to_team(NEW.teamId, NEW.gameId);
+	PERFORM add_people_to_team();
 END;
 $$ LANGUAGE plpgsql;
 
@@ -203,7 +203,13 @@ VALUES
 SELECT initialize();
 
 INSERT INTO plays (playerId)
-SELECT playerId FROM players;
+SELECT playerId 
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId 
+    FROM plays
+    WHERE plays.playerId = players.playerId
+);
 
 INSERT INTO teams (teamLeaderId, teamname)
 VALUES

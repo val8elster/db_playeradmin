@@ -114,37 +114,34 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION assign_players_to_team() 
 RETURNS VOID AS $$
-DECLARE
-    pints INT;
-	teamI INT;
-	i INT := 0;
-	column_value INT;
-	team_value INT;
+DECLARE 
+	playerList INTEGER[];
+	count INT := 0;
+	teami INT;
+	i INT;
+	j INT;
+	pints INT;
 BEGIN
-    SELECT maxPinT INTO pints
-    FROM sessions 
-    WHERE active = B'1';
+	teami := (SELECT MIN(teamId) FROM teams WHERE active = B'1');
+	pints := (SELECT maxPinT FROM sessions WHERE active = B'1') - 1;
 	
-	FOR team_value IN
-		SELECT teamId 
-		FROM teams
-		WHERE active = B'1'
-	LOOP	
-		FOR column_value IN
-			SELECT playerId
-			FROM players
-			WHERE NOT EXISTS (
-				SELECT teamId
-				FROM plays 
-				WHERE plays.playerId = playerId
-			)
-			ORDER BY RANDOM()
-			LIMIT (pints - 1)
+	playerList := ARRAY(
+					SELECT playerId 
+					FROM plays 
+					WHERE teamId IS NULL				
+					ORDER BY RANDOM()
+	);
+	
+	FOR i IN teami..(teami+2)
+	LOOP
+		FOR j IN 1..pints
 		LOOP
-			UPDATE plays
-			SET teamId = teamI
-			WHERE playerId = column_value;
+			UPDATE plays 
+			SET teamId = teami
+			WHERE playerId = playerList[count];
+			count := count + 1;
 		END LOOP;
+		teami := teami + 1;
 	END LOOP;
 END;
 $$ LANGUAGE plpgsql;

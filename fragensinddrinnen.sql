@@ -228,9 +228,30 @@ VALUES
 	(7, 'welche farbe hat das wasser?', 'blau', 'kalt','Loch Ness','grün',3,10),
 	(8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10);
 	
-/*CREATE OR REPLACE FUNCTION start_game()
+CREATE OR REPLACE FUNCTION start_game()
 RETURNS VOID AS $$
 DECLARE
 	game_id INT;
-*/
+	firstquestionID INT;
+BEGIN
+	SELECT gameId INTO game_id
+	FROM games
+	WHERE active = B'1'
+	LIMIT 1;
+
+	SELECT questionId INTO firstquestionID
+	FROM features
+	WHERE gameId = game_id
+	ORDER BY questionId
+	LIMIT 1;
+	 RAISE NOTICE 'Die erste Frage lautet: %', (SELECT qname FROM questions WHERE questionId = first_question_id);
+    RAISE NOTICE 'Antwortmöglichkeiten:';
+    RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = first_question_id);
+    RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = first_question_id);
+    RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = first_question_id);
+    RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = first_question_id);
+
+END 
+$$ LANGUAGE plpgsql;
+
 

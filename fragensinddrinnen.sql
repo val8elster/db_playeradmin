@@ -244,7 +244,7 @@ BEGIN
 	WHERE gameId = game_id
 	ORDER BY questionId
 	LIMIT 1;
-	 RAISE NOTICE 'Die erste Frage lautet: %', (SELECT qname FROM questions WHERE questionId = first_question_id);
+	 RAISE NOTICE 'Die erste Frage lautet: %', ((SELECT qname FROM questions WHERE questionId = first_question_id) INTO first_question_id);
     RAISE NOTICE 'Antwortmöglichkeiten:';
     RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = first_question_id);
     RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = first_question_id);

@@ -115,34 +115,39 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION assign_players_to_team() 
 RETURNS VOID AS $$
 DECLARE 
-	playerList INTEGER[];
-	count INT := 0;
+	player_id_to_distribute INT;
 	teami INT;
 	i INT;
 	j INT;
 	pints INT;
 BEGIN
-	teami := (SELECT MIN(teamId) FROM teams WHERE active = B'1');
-	pints := (SELECT maxPinT FROM sessions WHERE active = B'1') - 1;
-	
-	playerList := ARRAY(
-					SELECT playerId 
-					FROM plays 
-					WHERE teamId IS NULL				
-					ORDER BY RANDOM()
-	);
-	
-	FOR i IN teami..(teami+2)
-	LOOP
-		FOR j IN 1..pints
-		LOOP
-			UPDATE plays 
-			SET teamId = teami
-			WHERE playerId = playerList[count];
-			count := count + 1;
-		END LOOP;
-		teami := teami + 1;
-	END LOOP;
+	pints := (SELECT maxPinT FROM sessions WHERE active = B'1');
+
+    FOR i IN 1..3
+    LOOP
+        teami := (SELECT MIN(teamId) FROM teams WHERE active = B'1');
+
+        FOR j in 2..pints
+        LOOP
+			CREATE OR REPLACE TEMPORARY VIEW playersToDistribute AS 
+			SELECT playerId 
+			FROM plays
+			WHERE teamId IS NULL 
+			ORDER BY RANDOM();
+			
+            SELECT playerId INTO player_id_to_distribute
+            FROM playersToDistribute
+            LIMIT 1;
+
+            UPDATE plays
+            SET teamId = teami
+            WHERE playerId = player_id_to_distribute;
+        END LOOP;
+
+        UPDATE teams
+        SET active = B'0' 
+        WHERE teamId = teami;
+    END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -35,7 +35,8 @@ CREATE TABLE questions (
     rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
     qname VARCHAR(50) NOT NULL,
     points INT NOT NULL,
-    difficulty INT CHECK (difficulty IN (1,2,3,4,5))
+    difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
+	UNIQUE(qname, questionId)
 );
 
 CREATE TABLE answered (
@@ -62,7 +63,10 @@ CREATE TABLE partOf (
 CREATE TABLE features (
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-    PRIMARY KEY(gameId, questionId)
+	qname VARCHAR(50),
+    PRIMARY KEY(gameId, questionId),
+	
+	FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
 
 CREATE TABLE statisticsQuestions (
@@ -233,24 +237,24 @@ RETURNS VOID AS $$
 DECLARE
 	game_id INT;
 	firstquestionID INT;
-	--firstquestionIdname VARCHAR(50);
+	firstquestionIDname VARCHAR(50);
 BEGIN
 	SELECT gameId INTO game_id
 	FROM games
 	WHERE active = B'1'
 	LIMIT 1;
 
-	SELECT questionId,qname INTO firstquestionID
+	SELECT questionId, qname INTO firstquestionID, firstquestionIDname
 	FROM features
 	WHERE gameId = game_id
 	ORDER BY questionId
 	LIMIT 1;
-	 RAISE NOTICE 'Die erste Frage lautet: %', ((SELECT qname FROM questions WHERE questionId = firstquestionid) INTO firstquestionid);
-    RAISE NOTICE 'Antwortmöglichkeiten:';
-    RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = first_question_id);
-    RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = first_question_id);
-    RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = first_question_id);
-    RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = first_question_id);
+	 RAISE NOTICE 'Die erste Frage lautet: %', firstquestionIDname;
+	RAISE NOTICE 'Antwortmöglichkeiten:';
+    RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = firstquestionid);
+    RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
+    RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
+    RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
 
 END 
 $$ LANGUAGE plpgsql;

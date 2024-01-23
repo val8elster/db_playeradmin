@@ -255,7 +255,7 @@ BEGIN
     RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
-
+	 SELECT questionId, qname INTO firstquestionID, firstquestionIDname
 END 
 $$ LANGUAGE plpgsql;
 

@@ -243,19 +243,32 @@ BEGIN
 	FROM games
 	WHERE active = B'1'
 	LIMIT 1;
-
-	SELECT questionId, qname INTO firstquestionID, firstquestionIDname
+	
+	INSERT INTO features(gameId,questionId, qname )
+	SELECT game_id, questionId, qname
+	FROM questions
+	WHERE questionId NOT IN (SELECT questionId FROM features WHERE gameId=game_id)
+	ORDER BY RANDOM()
+	LIMIT 1
+	RETURNING questionId, qname INTO firstquestionID, firstquestionIDname;
+ 	/*INSERT INTO features(gameId)
+	SELECT gameId
+	FROM games
+	LIMIT 1;*/
+	
+	/*SELECT questionId, qname INTO firstquestionID, firstquestionIDname
 	FROM features
 	WHERE gameId = game_id
 	ORDER BY questionId
-	LIMIT 1;
+	LIMIT 1;*/
+	
 	 RAISE NOTICE 'Die erste Frage lautet: %', firstquestionIDname;
 	RAISE NOTICE 'Antwortmöglichkeiten:';
     RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
-	 SELECT questionId, qname INTO firstquestionID, firstquestionIDname
+	
 END 
 $$ LANGUAGE plpgsql;
 

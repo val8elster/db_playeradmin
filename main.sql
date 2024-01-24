@@ -1,3 +1,5 @@
+CREATE SCHEMA public 
+
 CREATE TABLE players (
     playerId SERIAL PRIMARY KEY,
     name VARCHAR(20) UNIQUE,
@@ -245,7 +247,6 @@ DECLARE
 	righta INT;
 	wronga INT;
 	question_id INT;
-	an DECIMAL;
 BEGIN 
 	SELECT questionId INTO question_id
 	FROM answered
@@ -254,16 +255,14 @@ BEGIN
 	SELECT rightAnswers, wrongAnswers INTO righta, wronga
     FROM statisticsQuestions
     WHERE questionId = question_id;
-	
+		
 	IF (righta + wronga != 0)
 	THEN
-		an := 5 * (1 - (righta / (righta + wronga)));
+		dif := ((10 - (righta * 10) / (righta + wronga))/2);
 	ELSE
-		an := 0;
+		dif := 0;
 	END IF;
-	
-	dif = an; 
-	
+		
 	UPDATE statisticsQuestions 
 	SET difficulty = dif 
 	WHERE questionId = question_id;

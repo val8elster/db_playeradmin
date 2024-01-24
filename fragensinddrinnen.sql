@@ -221,16 +221,16 @@ VALUES
 	(1, 'Team1'),
 	(2, 'Team2'),
 	(3, 'Team3');
-INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points)
+INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points, difficulty)
 VALUES
-	(1, 'welche farbe hat der Himmel?', 'blau', 'gelb','pink','grün',1, 10),
-	(2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 10),
-	(3, 'welche farbe hat die Milch?', 'blau', 'gelb','pink','weiß',4,10),
-	(4, 'was ist ein Baum ','wasser','Pflanze','Himbeersaft','Cola',2,10),
-	(5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade','orange','grün',3,10),
-	(6, 'was ist eis','wasser','lecker','Himbeersaft','Cola',2,10),
-	(7, 'welche farbe hat das wasser?', 'blau', 'kalt','Loch Ness','grün',3,10),
-	(8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10);
+	(1, 'welche farbe hat der Himmel?', 'blau', 'gelb','pink','grün',1, 10, 3),
+	(2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 10,2),
+	(3, 'welche farbe hat die Milch?', 'blau', 'gelb','pink','weiß',4,10,5),
+	(4, 'was ist ein Baum ','wasser','Pflanze','Himbeersaft','Cola',2,10, 1),
+	(5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade','orange','grün',3,10, 2),
+	(6, 'was ist eis','wasser','lecker','Himbeersaft','Cola',2,10, 4),
+	(7, 'welche farbe hat das wasser?', 'blau', 'kalt','Loch Ness','grün',3,10, 1),
+	(8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10, 3);
 	
 CREATE OR REPLACE FUNCTION start_game()
 RETURNS TRIGGER AS $$
@@ -251,16 +251,7 @@ BEGIN
 	ORDER BY RANDOM()
 	LIMIT 1
 	RETURNING questionId, qname INTO firstquestionID, firstquestionIDname;
- 	/*INSERT INTO features(gameId)
-	SELECT gameId
-	FROM games
-	LIMIT 1;*/
-	
-	/*SELECT questionId, qname INTO firstquestionID, firstquestionIDname
-	FROM features
-	WHERE gameId = game_id
-	ORDER BY questionId
-	LIMIT 1;*/
+ 	
 	
 	 RAISE NOTICE 'Die erste Frage lautet: %', firstquestionIDname;
 	RAISE NOTICE 'Antwortmöglichkeiten:';

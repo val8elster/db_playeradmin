@@ -76,8 +76,6 @@ CREATE TABLE statisticsPlayer (
     questionsWrong INT DEFAULT 0
 );
 
-
-
 CREATE OR REPLACE FUNCTION initialize()
 RETURNS VOID AS $$
 DECLARE
@@ -109,6 +107,12 @@ BEGIN
 		WHERE s.active = B'1'
 		AND g.active = B'1'
 	);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION decomp()
+RETURNS VOID AS $$
+BEGIN
 END;
 $$ LANGUAGE plpgsql;
 

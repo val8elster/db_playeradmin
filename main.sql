@@ -262,6 +262,8 @@ BEGIN
 		an := 0;
 	END IF;
 	
+	dif = an; 
+	
 	UPDATE statisticsQuestions 
 	SET difficulty = dif 
 	WHERE questionId = question_id;

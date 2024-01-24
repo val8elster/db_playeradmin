@@ -117,44 +117,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION add_people_to_team(team_id INT, game_id INT)
-RETURNS VOID AS $$
-DECLARE
-    	c INT := 1;
-	maxPinT_value INT;
-	players_needed INT;
-BEGIN
-    	SELECT maxPinT INTO maxPinT_value
-    	FROM sessions s
-	WHERE active = B'1';
-
-    	SELECT (maxPinT_value - COUNT(*)) INTO players_needed
-    	FROM plays
-    	WHERE teamId = team_id AND gameId = game_id;
-
-    	EXECUTE 'UPDATE plays
-        	SET teamId = $1, gameId = $2
-             	FROM (
-                 	SELECT playerId, ROW_NUMBER() OVER () AS random_order
-                 	FROM (
-                     		SELECT playerId
-                     		FROM players
-                     		WHERE NOT EXISTS (
-                         		SELECT teamId
-                         		FROM plays
-                         		WHERE plays.playerId = players.playerId
-                     		)
-                     		ORDER BY RANDOM()
-                     		LIMIT $3
-                 	) AS random_players
-             	) AS selected_players
-             	WHERE plays.playerId = selected_players.playerId AND plays.teamId IS NULL AND plays.gameId IS NULL'
-    		USING team_id, game_id, players_needed;
-END;
-$$ LANGUAGE plpgsql;
-
-
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
 RETURNS TRIGGER AS $$
 DECLARE 
@@ -247,22 +209,22 @@ VALUES
 SELECT initialize();
 
 INSERT INTO plays (playerId)
-VALUES
-    (1),
-    (2),
-    (3);
+VALUES 
+	(1), 
+	(2), 
+	(3);
 
 INSERT INTO teams (teamLeaderId, teamname)
 VALUES
-    (1, 'Team1'),
-    (2, 'Team2'),
-    (3, 'Team3');
+	(1, 'Team1'),
+	(2, 'Team2'),
+	(3, 'Team3');
 
 INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 1, 1
 FROM players
 WHERE NOT EXISTS (
-    SELECT playerId
+    SELECT playerId 
     FROM plays
     WHERE plays.playerId = players.playerId
 )
@@ -272,7 +234,7 @@ INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 2, 1
 FROM players
 WHERE NOT EXISTS (
-    SELECT playerId
+    SELECT playerId 
     FROM plays
     WHERE plays.playerId = players.playerId
 )
@@ -283,7 +245,7 @@ INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 3, 1
 FROM players
 WHERE NOT EXISTS (
-    SELECT playerId
+    SELECT playerId 
     FROM plays
     WHERE plays.playerId = players.playerId
 )

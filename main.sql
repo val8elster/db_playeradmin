@@ -1,9 +1,3 @@
-CREATE TABLE players (
-    playerId SERIAL PRIMARY KEY,
-    name VARCHAR(20) UNIQUE,
-    points INT DEFAULT 0
-);
-
 CREATE TABLE games (
     gameId SERIAL PRIMARY KEY,
     gameLeaderId INT REFERENCES players(playerId) ON DELETE SET NULL,
@@ -75,8 +69,6 @@ CREATE TABLE statisticsPlayer (
     questionsWrong INT DEFAULT 0
 );
 
-
-
 CREATE OR REPLACE FUNCTION initialize()
 RETURNS VOID AS $$
 DECLARE
@@ -111,48 +103,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION assign_players_to_team() 
-RETURNS VOID AS $$
-DECLARE 
-	player_id_to_distribute INT;
-	teami INT;
-	i INT;
-	j INT;
-	pints INT;
-BEGIN
-	pints := (SELECT maxPinT FROM sessions WHERE active = B'1');
-
-    FOR i IN 1..3
-    LOOP
-        teami := (SELECT MIN(teamId) FROM teams WHERE active = B'1');
-
-        FOR j in 2..pints
-        LOOP
-			CREATE OR REPLACE TEMPORARY VIEW playersToDistribute AS 
-			SELECT playerId 
-			FROM plays
-			WHERE teamId IS NULL 
-			ORDER BY RANDOM();
-			
-            SELECT playerId INTO player_id_to_distribute
-            FROM playersToDistribute
-            LIMIT 1;
-
-            UPDATE plays
-            SET teamId = teami
-            WHERE playerId = player_id_to_distribute;
-        END LOOP;
-
-        UPDATE teams
-        SET active = B'0' 
-        WHERE teamId = teami;
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
 RETURNS TRIGGER AS $$
 DECLARE 
@@ -172,16 +122,10 @@ BEGIN
         	FROM players
         	WHERE teamId = NEW.teamId;
 
-		UPDATE plays
-        	SET sessionId = game_session.sessionId
-        	WHERE teamId = NEW.teamId AND gameId = game_session.gameId;
-
     	END LOOP;
 	RETURN NEW;
-	PERFORM add_people_to_team();
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE TRIGGER tteamleader
 AFTER INSERT ON teams
@@ -210,16 +154,44 @@ VALUES
 SELECT initialize();
 
 INSERT INTO plays (playerId)
-SELECT playerId 
-FROM players
-WHERE NOT EXISTS (
-    SELECT playerId 
-    FROM plays
-    WHERE plays.playerId = players.playerId
-);
+VALUES 
+	(1), 
+	(2), 
+	(3);
 
 INSERT INTO teams (teamLeaderId, teamname)
 VALUES
 	(1, 'Team1'),
 	(2, 'Team2'),
 	(3, 'Team3');
+
+INSERT INTO plays (playerId, teamId, gameId)
+SELECT playerId, 1, 1
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId 
+    FROM plays
+    WHERE plays.playerId = players.playerId
+)
+LIMIT 4;
+
+INSERT INTO plays (playerId, teamId, gameId)
+SELECT playerId, 2, 1
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId 
+    FROM plays
+    WHERE plays.playerId = players.playerId
+)
+LIMIT 4;
+
+
+INSERT INTO plays (playerId, teamId, gameId)
+SELECT playerId, 3, 1
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId 
+    FROM plays
+    WHERE plays.playerId = players.playerId
+)
+LIMIT 4;

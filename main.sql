@@ -223,5 +223,3 @@ WHERE NOT EXISTS (
     WHERE plays.playerId = players.playerId
 )
 LIMIT 4;
-
-SELECT decomp();

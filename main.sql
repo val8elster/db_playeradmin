@@ -160,6 +160,41 @@ AFTER INSERT ON teams
 FOR EACH ROW
 EXECUTE FUNCTION add_team_leader_to_plays();
 
+CREATE OR REPLACE FUNCTION start_game()
+    RETURNS TRIGGER AS $$
+DECLARE
+    game_id INT;
+    firstquestionID INT;
+    firstquestionIDname VARCHAR(50);
+BEGIN
+    SELECT gameId INTO game_id
+    FROM games
+    WHERE active = B'1'
+    LIMIT 1;
+
+    INSERT INTO features(gameId,questionId, qname )
+    SELECT game_id, questionId, qname
+    FROM questions
+    WHERE questionId NOT IN (SELECT questionId FROM features WHERE gameId=game_id)
+    ORDER BY RANDOM()
+    LIMIT 1
+    RETURNING questionId, qname INTO firstquestionID, firstquestionIDname;
+
+
+    RAISE NOTICE 'Die erste Frage lautet: %', firstquestionIDname;
+    RAISE NOTICE 'Antwortmöglichkeiten:';
+    RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = firstquestionid);
+    RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
+    RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
+    RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
+
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER firstquestion
+    AFTER INSERT ON features
+    FOR EACH ROW
+EXECUTE FUNCTION start_game();
 
 INSERT INTO players (name)
 VALUES
@@ -223,3 +258,14 @@ WHERE NOT EXISTS (
     WHERE plays.playerId = players.playerId
 )
 LIMIT 4;
+
+INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points, difficulty)
+VALUES
+    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb','pink','grün',1, 10, 3),
+    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 10,2),
+    (3, 'welche farbe hat die Milch?', 'blau', 'gelb','pink','weiß',4,10,5),
+    (4, 'was ist ein Baum ','wasser','Pflanze','Himbeersaft','Cola',2,10, 1),
+    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade','orange','grün',3,10, 2),
+    (6, 'was ist eis','wasser','lecker','Himbeersaft','Cola',2,10, 4),
+    (7, 'welche farbe hat das wasser?', 'blau', 'kalt','Loch Ness','grün',3,10, 1),
+    (8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10, 3);

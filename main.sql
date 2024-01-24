@@ -41,6 +41,7 @@ CREATE TABLE questions (
 
 
 CREATE TABLE answered (
+	nom SERIAL UNIQUE,
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     isCorrect BIT,
@@ -237,6 +238,36 @@ $$ LANGUAGE plpgsql;
 
 
 
+CREATE OR REPLACE FUNCTION create_statistic_for_question()
+RETURNS TRIGGER AS $$
+DECLARE
+    question_id INT;
+BEGIN
+    SELECT questionId INTO question_id
+    FROM answered
+	ORDER BY nom DESC
+    LIMIT 1; 
+
+    IF NEW.isCorrect = B'0' THEN
+        UPDATE statisticsQuestions
+        SET rightAnswers = rightAnswers + 1
+        WHERE questionId = question_id;
+    ELSE
+        UPDATE statisticsQuestions
+        SET wrongAnswers = wrongAnswers + 1
+        WHERE questionId = question_id;
+    END IF;
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tqueststat
+AFTER INSERT ON answered
+FOR EACH STATEMENT
+EXECUTE FUNCTION create_statistic_for_question();
+
+
+
 
 
 INSERT INTO players (name)
@@ -313,6 +344,18 @@ VALUES
     (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10, 1),
     (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10, 3),
 	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1, 1);
+
+INSERT INTO statisticsQuestions(questionId)
+VALUES
+	(1),
+	(2),
+	(3),
+	(4),
+	(5),
+	(6),
+	(7),
+	(8),
+	(9);
 
 SELECT answer_question(1, 1, 1);
 SELECT answer_question(7, 2, 5);

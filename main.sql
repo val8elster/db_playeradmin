@@ -26,16 +26,16 @@ CREATE TABLE sessions (
 );
 
 CREATE TABLE questions (
-                           questionId SERIAL PRIMARY KEY,
-                           answer1 VARCHAR(40) NOT NULL,
-                           answer2 VARCHAR(40) NOT NULL,
-                           answer3 VARCHAR(40) NOT NULL,
-                           answer4 VARCHAR(40) NOT NULL,
-                           rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
-                           qname VARCHAR(50) NOT NULL,
-                           points INT NOT NULL,
-                           difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
-                           UNIQUE(qname, questionId)
+	questionId SERIAL PRIMARY KEY,
+	answer1 VARCHAR(40) NOT NULL,
+    answer2 VARCHAR(40) NOT NULL,
+	answer3 VARCHAR(40) NOT NULL,
+    answer4 VARCHAR(40) NOT NULL,
+    rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
+    qname VARCHAR(50) NOT NULL,
+    points INT NOT NULL,
+    difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
+    UNIQUE(qname, questionId)
 );
 
 
@@ -59,12 +59,11 @@ CREATE TABLE partOf (
     PRIMARY KEY(sessionId)
 );
 CREATE TABLE features (
-                          gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-                          questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-                          qname VARCHAR(50),
-                          PRIMARY KEY(gameId, questionId),
-
-                          FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
+    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
+    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
+    qname VARCHAR(50),
+    PRIMARY KEY(gameId, questionId),
+    FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
 
 
@@ -267,11 +266,12 @@ LIMIT 4;
 
 INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points, difficulty)
 VALUES
-    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb','pink','grün',1, 10, 3),
-    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 10,2),
-    (3, 'welche farbe hat die Milch?', 'blau', 'gelb','pink','weiß',4,10,5),
-    (4, 'was ist ein Baum ','wasser','Pflanze','Himbeersaft','Cola',2,10, 1),
-    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade','orange','grün',3,10, 2),
-    (6, 'was ist eis','wasser','lecker','Himbeersaft','Cola',2,10, 4),
-    (7, 'welche farbe hat das wasser?', 'blau', 'kalt','Loch Ness','grün',3,10, 1),
-    (8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10, 3);
+    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1, 30, 3),
+    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 20, 2),
+    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4, 50, 5),
+    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10, 1),
+    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10, 2),
+    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10, 4),
+    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün',3,10, 1),
+    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10, 3),
+	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1, 1);

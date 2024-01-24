@@ -66,7 +66,6 @@ CREATE TABLE features (
     FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
 
-
 CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     rightAnswers INT DEFAULT 0,
@@ -80,6 +79,10 @@ CREATE TABLE statisticsPlayer (
     questionsRight INT DEFAULT 0,
     questionsWrong INT DEFAULT 0
 );
+
+
+
+
 
 CREATE OR REPLACE FUNCTION initialize()
 RETURNS VOID AS $$
@@ -200,6 +203,10 @@ CREATE TRIGGER firstquestion
     AFTER INSERT ON features
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
+
+
+
+
 
 INSERT INTO players (name)
 VALUES

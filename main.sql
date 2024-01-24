@@ -71,7 +71,7 @@ CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     rightAnswers INT DEFAULT 0,
     wrongAnswers INT DEFAULT 0,
-	difficulty INT CHECK (difficulty IN (1,2,3,4,5))
+	difficulty INT CHECK (difficulty IN (0,1,2,3,4,5))
 );
 
 CREATE TABLE statisticsPlayer (
@@ -238,34 +238,30 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION check_difficulty(question_id INT)
+CREATE OR REPLACE FUNCTION check_difficulty(question_row INT)
 RETURNS VOID AS $$
 DECLARE
 	dif INT;
 	righta INT;
 	wronga INT;
-	bet1 DECIMAL;
-	bet2 INT;
+	question_id INT;
+	an DECIMAL;
 BEGIN 
+	SELECT questionId INTO question_id
+	FROM answered
+	WHERE nom = question_row;
+
 	SELECT rightAnswers, wrongAnswers INTO righta, wronga
     FROM statisticsQuestions
     WHERE questionId = question_id;
 	
 	IF (righta + wronga != 0)
 	THEN
-		bet1 := (righta / (righta + wronga));
-
-		 IF bet1 % 1 > 0.5 THEN
-			bet2 := CEIL(bet1);
-		ELSE
-			bet2 := FLOOR(bet1);
-		END IF;
-
-		dif := 1 + 4 * (1 - bet2);
+		an := 5 * (1 - (righta / (righta + wronga)));
 	ELSE
-		dif := 0;
+		an := 0;
 	END IF;
-
+	
 	UPDATE statisticsQuestions 
 	SET difficulty = dif 
 	WHERE questionId = question_id;
@@ -305,7 +301,7 @@ BEGIN
 	SET added = B'0'
 	WHERE added = B'1';
 	
-	PERFORM check_difficulty(question_id);
+	PERFORM check_difficulty(col);
 	
 	RETURN NEW;
 END;

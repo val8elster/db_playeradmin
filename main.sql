@@ -246,7 +246,9 @@ DECLARE
 	right INT;
 	wrong INT;
 BEGIN 
-	SELECT 
+	right := (SELECT rightAnswers FROM statisticsQuestions WHERE questionId = question_id);
+	wrong := (SELECT wrongAnswers FROM statisticsQuestions WHERE questionId = question_id);	
+	dif := (right / (right + wrong));
 END;
 $$ LANGUAGE plpgsql;
 

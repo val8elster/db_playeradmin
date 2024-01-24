@@ -248,7 +248,7 @@ BEGIN
 	ORDER BY nom DESC
     LIMIT 1; 
 
-    IF NEW.isCorrect = B'0' THEN
+    IF (SELECT isCorrect FROM answered WHERE questionId = question_id) = B'0' THEN
         UPDATE statisticsQuestions
         SET rightAnswers = rightAnswers + 1
         WHERE questionId = question_id;
@@ -257,6 +257,7 @@ BEGIN
         SET wrongAnswers = wrongAnswers + 1
         WHERE questionId = question_id;
     END IF;
+	
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -359,3 +360,5 @@ VALUES
 
 SELECT answer_question(1, 1, 1);
 SELECT answer_question(7, 2, 5);
+
+SELECT * FROM statisticsquestions ORDER BY questionId ASC

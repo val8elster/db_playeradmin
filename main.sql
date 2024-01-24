@@ -26,15 +26,18 @@ CREATE TABLE sessions (
 );
 
 CREATE TABLE questions (
-    questionId SERIAL PRIMARY KEY,
-    answer1 VARCHAR(40) NOT NULL,
-    answer2 VARCHAR(40) NOT NULL,
-    answer3 VARCHAR(40) NOT NULL,
-    rightAnswer VARCHAR(40) NOT NULL,
-    name VARCHAR(50) NOT NULL,
-    points INT NOT NULL,
-    difficulty INT CHECK (difficulty IN (1,2,3,4,5))
+                           questionId SERIAL PRIMARY KEY,
+                           answer1 VARCHAR(40) NOT NULL,
+                           answer2 VARCHAR(40) NOT NULL,
+                           answer3 VARCHAR(40) NOT NULL,
+                           answer4 VARCHAR(40) NOT NULL,
+                           rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
+                           qname VARCHAR(50) NOT NULL,
+                           points INT NOT NULL,
+                           difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
+                           UNIQUE(qname, questionId)
 );
+
 
 CREATE TABLE answered (
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
@@ -55,12 +58,15 @@ CREATE TABLE partOf (
     sessionId INT REFERENCES sessions(sessionId) ON DELETE SET NULL,
     PRIMARY KEY(sessionId)
 );
-
 CREATE TABLE features (
-    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-    PRIMARY KEY(gameId, questionId)
+                          gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
+                          questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
+                          qname VARCHAR(50),
+                          PRIMARY KEY(gameId, questionId),
+
+                          FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
+
 
 CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,

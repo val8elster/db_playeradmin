@@ -34,7 +34,6 @@ CREATE TABLE questions (
     rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
     qname VARCHAR(50) NOT NULL,
     points INT NOT NULL,
-    difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
     UNIQUE(qname, questionId)
 );
 
@@ -68,10 +67,13 @@ CREATE TABLE features (
     FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
 
+
+
 CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     rightAnswers INT DEFAULT 0,
-    wrongAnswers INT DEFAULT 0
+    wrongAnswers INT DEFAULT 0,
+	difficulty INT CHECK (difficulty IN (1,2,3,4,5))
 );
 
 CREATE TABLE statisticsPlayer (
@@ -237,6 +239,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION check_difficulty(question_id INT)
+RETURNS VOID AS $$
+DECLARE
+	dif INT;
+	right INT;
+	wrong INT;
+BEGIN 
+	SELECT 
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 CREATE OR REPLACE FUNCTION create_statistic_for_question()
 RETURNS TRIGGER AS $$
@@ -334,17 +348,17 @@ WHERE NOT EXISTS (
 )
 LIMIT 4;
 
-INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points, difficulty)
+INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points)
 VALUES
-    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1, 30, 3),
-    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 20, 2),
-    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4, 50, 5),
-    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10, 1),
-    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10, 2),
-    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10, 4),
-    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10, 1),
-    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10, 3),
-	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1, 1);
+    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1, 30),
+    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 20),
+    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4, 50),
+    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10),
+    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10),
+    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10),
+    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10),
+    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10),
+	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1);
 
 INSERT INTO statisticsQuestions(questionId)
 VALUES

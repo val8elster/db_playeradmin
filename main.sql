@@ -39,6 +39,7 @@ CREATE TABLE questions (
 );
 
 
+
 CREATE TABLE answered (
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
@@ -139,6 +140,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
 RETURNS TRIGGER AS $$
 DECLARE 
@@ -168,8 +171,10 @@ AFTER INSERT ON teams
 FOR EACH ROW
 EXECUTE FUNCTION add_team_leader_to_plays();
 
+
+
 CREATE OR REPLACE FUNCTION start_game()
-    RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $$
 DECLARE
     game_id INT;
     firstquestionID INT;
@@ -203,6 +208,30 @@ CREATE TRIGGER firstquestion
     AFTER INSERT ON features
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
+
+
+
+CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
+RETURNS VOID AS $$
+DECLARE
+	correct BIT;
+BEGIN
+	IF(
+		(SELECT rightAnswer 
+		FROM questions
+		WHERE (questionId = question))
+		= answer
+	)	
+	THEN
+		correct := B'0';
+	ELSE
+		correct := B'1';
+	END IF;
+
+	INSERT INTO answered (playerId, questionId, isCorrect)
+	VALUES (player, question, correct);
+END;
+$$ LANGUAGE plpgsql;
 
 
 
@@ -279,6 +308,9 @@ VALUES
     (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10, 1),
     (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10, 2),
     (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10, 4),
-    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün',3,10, 1),
+    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10, 1),
     (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10, 3),
 	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1, 1);
+
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(7, 2, 5);

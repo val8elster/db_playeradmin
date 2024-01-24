@@ -1,5 +1,3 @@
-CREATE SCHEMA public 
-
 CREATE TABLE players (
     playerId SERIAL PRIMARY KEY,
     name VARCHAR(20) UNIQUE,
@@ -239,7 +237,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
+-- falsch: 0-20%: 1, 30-40%: 2, 50-60%: 3, 70-80%: 4, 90-100%: 5
 CREATE OR REPLACE FUNCTION check_difficulty(question_row INT)
 RETURNS VOID AS $$
 DECLARE
@@ -258,10 +256,15 @@ BEGIN
 		
 	IF (righta + wronga != 0)
 	THEN
-		dif := ((10 - (righta * 10) / (righta + wronga))/2);
+		dif := ((10 - (righta * 10) / (righta + wronga)) / 2);
+		IF(dif = 0)
+		THEN 
+			dif := 1;
+		END IF;
 	ELSE
 		dif := 0;
 	END IF;
+
 		
 	UPDATE statisticsQuestions 
 	SET difficulty = dif 
@@ -409,11 +412,13 @@ SELECT answer_question(1, 1, 1);
 SELECT answer_question(1, 1, 1);
 SELECT answer_question(1, 1, 1);
 SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 2, 1);
-SELECT answer_question(1, 4, 1);
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(1, 1, 1);
 SELECT answer_question(1, 3, 1);
-SELECT answer_question(1, 4, 1);
 SELECT answer_question(1, 2, 1);
 SELECT answer_question(1, 3, 1);
+
+SELECT answer_question(3, 4, 2);
 
 SELECT answer_question(7, 2, 5);

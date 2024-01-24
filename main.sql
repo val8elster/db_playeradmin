@@ -193,7 +193,7 @@ BEGIN
     RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
-
+    PERFORM assign_questions();
 END
 $$ LANGUAGE plpgsql;
 
@@ -201,6 +201,33 @@ CREATE TRIGGER firstquestion
     AFTER INSERT ON features
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
+
+CREATE OR REPLACE FUNCTION assign_questions(gameId INT )
+    RETURNS VOID AS $$
+DECLARE
+    question_record RECORD;
+    question_cursor CURSOR FOR
+        SELECT questionId, qname
+            FROM questions
+            ORDER BY RANDOM()
+        LIMIT 5;
+
+BEGIN
+    OPEN question_cursor;
+    FOR question_record IN question_cursor
+    LOOP
+        INSERT INTO features(gameId, questionId, qname)
+        VALUES (gameId, question_record.questionId, question_record.qname);
+    end loop;
+    CLOSE question_cursor;
+END
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER assignquestion
+    AFTER INSERT ON features
+    FOR EACH ROW
+EXECUTE FUNCTION assign_questions();
 
 INSERT INTO players (name)
 VALUES

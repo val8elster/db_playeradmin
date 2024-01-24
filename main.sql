@@ -46,7 +46,6 @@ CREATE TABLE plays (
     teamId INT REFERENCES teams(teamId) ON DELETE SET NULL,
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    sessionId INT REFERENCES sessions(sessionId) ON DELETE SET NULL,
     PRIMARY KEY(playerId)
 );
 
@@ -110,13 +109,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION decomp()
-RETURNS VOID AS $$
-BEGIN
-END;
-$$ LANGUAGE plpgsql;
-
-
 CREATE OR REPLACE FUNCTION add_people_to_team(team_id INT, game_id INT)
 RETURNS VOID AS $$
 DECLARE
@@ -173,16 +165,10 @@ BEGIN
         	FROM players
         	WHERE teamId = NEW.teamId;
 
-		UPDATE plays
-        	SET sessionId = game_session.sessionId
-        	WHERE teamId = NEW.teamId AND gameId = game_session.gameId;
-
     	END LOOP;
 	RETURN NEW;
-	PERFORM add_people_to_team(NEW.teamId, NEW.gameId);
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE TRIGGER tteamleader
 AFTER INSERT ON teams
@@ -211,10 +197,44 @@ VALUES
 SELECT initialize();
 
 INSERT INTO plays (playerId)
-SELECT playerId FROM players;
+VALUES
+	(1),
+	(2),
+	(3);
 
 INSERT INTO teams (teamLeaderId, teamname)
 VALUES
 	(1, 'Team1'),
 	(2, 'Team2'),
 	(3, 'Team3');
+
+INSERT INTO plays (playerId, teamId, gameId)
+SELECT playerId, 1, 1
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId
+    FROM plays
+    WHERE plays.playerId = players.playerId
+)
+LIMIT 4;
+
+INSERT INTO plays (playerId, teamId, gameId)
+SELECT playerId, 2, 1
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId
+    FROM plays
+    WHERE plays.playerId = players.playerId
+)
+LIMIT 4;
+
+
+INSERT INTO plays (playerId, teamId, gameId)
+SELECT playerId, 3, 1
+FROM players
+WHERE NOT EXISTS (
+    SELECT playerId
+    FROM plays
+    WHERE plays.playerId = players.playerId
+)
+LIMIT 4;

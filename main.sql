@@ -224,8 +224,10 @@ BEGIN
 	)	
 	THEN
 		correct := B'0';
+		-- true
 	ELSE
 		correct := B'1';
+		-- false
 	END IF;
 
 	INSERT INTO answered (playerId, questionId, isCorrect)

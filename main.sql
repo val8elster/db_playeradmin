@@ -292,6 +292,7 @@ WHERE NOT EXISTS (
 )
 LIMIT 4;
 
+
 INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points, difficulty)
 VALUES
     (1, 'welche farbe hat der Himmel?', 'blau', 'gelb','pink','grün',1, 10, 3),

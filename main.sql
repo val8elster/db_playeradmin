@@ -1,3 +1,5 @@
+CREATE SCHEMA public 
+
 CREATE TABLE players (
     playerId SERIAL PRIMARY KEY,
     name VARCHAR(20) UNIQUE,
@@ -40,11 +42,11 @@ CREATE TABLE questions (
 
 
 CREATE TABLE answered (
-	nom SERIAL UNIQUE,
+	nom SERIAL PRIMARY KEY,
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     isCorrect BIT,
-    PRIMARY KEY(playerId, questionId)
+	added BIT
 );
 
 CREATE TABLE plays (
@@ -66,8 +68,6 @@ CREATE TABLE features (
     PRIMARY KEY(gameId, questionId),
     FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
-
-
 
 CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
@@ -232,23 +232,45 @@ BEGIN
 		correct := B'1';
 		-- false
 	END IF;
-
-	INSERT INTO answered (playerId, questionId, isCorrect)
-	VALUES (player, question, correct);
+	
+	INSERT INTO answered (playerId, questionId, isCorrect, added)
+	VALUES (player, question, correct, B'1');
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 CREATE OR REPLACE FUNCTION check_difficulty(question_id INT)
 RETURNS VOID AS $$
 DECLARE
 	dif INT;
-	right INT;
-	wrong INT;
+	righta INT;
+	wronga INT;
+	bet1 DECIMAL;
+	bet2 INT;
 BEGIN 
-	right := (SELECT rightAnswers FROM statisticsQuestions WHERE questionId = question_id);
-	wrong := (SELECT wrongAnswers FROM statisticsQuestions WHERE questionId = question_id);	
-	dif := (right / (right + wrong));
+	SELECT rightAnswers, wrongAnswers INTO righta, wronga
+    FROM statisticsQuestions
+    WHERE questionId = question_id;
+	
+	IF (righta + wronga != 0)
+	THEN
+		bet1 := (righta / (righta + wronga));
+
+		 IF bet1 % 1 > 0.5 THEN
+			bet2 := CEIL(bet1);
+		ELSE
+			bet2 := FLOOR(bet1);
+		END IF;
+
+		dif := 1 + 4 * (1 - bet2);
+	ELSE
+		dif := 0;
+	END IF;
+
+	UPDATE statisticsQuestions 
+	SET difficulty = dif 
+	WHERE questionId = question_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -258,13 +280,20 @@ CREATE OR REPLACE FUNCTION create_statistic_for_question()
 RETURNS TRIGGER AS $$
 DECLARE
     question_id INT;
+	col INT;
 BEGIN
     SELECT questionId INTO question_id
     FROM answered
 	ORDER BY nom DESC
     LIMIT 1; 
+	
+	SELECT nom into col
+	FROM answered
+	ORDER BY nom DESC
+	LIMIT 1;
 
-    IF (SELECT isCorrect FROM answered WHERE questionId = question_id) = B'0' THEN
+    IF (SELECT isCorrect FROM answered WHERE nom = col) = B'0' 
+	THEN
         UPDATE statisticsQuestions
         SET rightAnswers = rightAnswers + 1
         WHERE questionId = question_id;
@@ -273,6 +302,12 @@ BEGIN
         SET wrongAnswers = wrongAnswers + 1
         WHERE questionId = question_id;
     END IF;
+	
+	UPDATE answered 
+	SET added = B'0'
+	WHERE added = B'1';
+	
+	PERFORM check_difficulty(question_id);
 	
 	RETURN NEW;
 END;
@@ -374,7 +409,16 @@ VALUES
 	(8),
 	(9);
 
+-- question, answer, player
 SELECT answer_question(1, 1, 1);
-SELECT answer_question(7, 2, 5);
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(1, 2, 1);
+SELECT answer_question(1, 4, 1);
+SELECT answer_question(1, 3, 1);
+SELECT answer_question(1, 4, 1);
+SELECT answer_question(1, 2, 1);
+SELECT answer_question(1, 3, 1);
 
-SELECT * FROM statisticsquestions ORDER BY questionId ASC
+SELECT answer_question(7, 2, 5);

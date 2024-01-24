@@ -233,7 +233,7 @@ VALUES
 	(8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10);
 	
 CREATE OR REPLACE FUNCTION start_game()
-RETURNS VOID AS $$
+RETURNS TRIGGER AS $$
 DECLARE
 	game_id INT;
 	firstquestionID INT;
@@ -271,4 +271,9 @@ BEGIN
 	
 END 
 $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER firstquestion
+AFTER INSERT ON features
+FOR EACH ROW
+EXECUTE FUNCTION start_game();
 

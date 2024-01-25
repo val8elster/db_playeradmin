@@ -26,17 +26,18 @@ CREATE TABLE sessions (
 );
 
 CREATE TABLE questions (
-                           questionId SERIAL PRIMARY KEY,
-                           answer1 VARCHAR(40) NOT NULL,
-                           answer2 VARCHAR(40) NOT NULL,
-                           answer3 VARCHAR(40) NOT NULL,
-                           answer4 VARCHAR(40) NOT NULL,
-                           rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
-                           qname VARCHAR(50) NOT NULL,
-                           points INT NOT NULL,
-                           difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
-                           UNIQUE(qname, questionId)
+	questionId SERIAL PRIMARY KEY,
+	answer1 VARCHAR(40) NOT NULL,
+    answer2 VARCHAR(40) NOT NULL,
+	answer3 VARCHAR(40) NOT NULL,
+    answer4 VARCHAR(40) NOT NULL,
+    rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
+    qname VARCHAR(50) NOT NULL,
+    points INT NOT NULL,
+    difficulty INT CHECK (difficulty IN (1,2,3,4,5)),
+    UNIQUE(qname, questionId)
 );
+
 
 
 CREATE TABLE answered (
@@ -59,12 +60,11 @@ CREATE TABLE partOf (
     PRIMARY KEY(sessionId)
 );
 CREATE TABLE features (
-                          gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-                          questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-                          qname VARCHAR(50),
-                          PRIMARY KEY(gameId, questionId),
-
-                          FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
+    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
+    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
+    qname VARCHAR(50),
+    PRIMARY KEY(gameId, questionId),
+    FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
 
 
@@ -166,7 +166,7 @@ CREATE TRIGGER tteamleader
 EXECUTE FUNCTION add_team_leader_to_plays();
 
 CREATE OR REPLACE FUNCTION start_game()
-    RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $$
 DECLARE
     game_id INT;
     firstquestionID INT;
@@ -200,6 +200,36 @@ CREATE TRIGGER firstquestion
     AFTER INSERT ON features
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
+
+
+
+CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
+RETURNS VOID AS $$
+DECLARE
+	correct BIT;
+BEGIN
+	IF(
+		(SELECT rightAnswer
+		FROM questions
+		WHERE (questionId = question))
+		= answer
+	)
+	THEN
+		correct := B'0';
+		-- true
+	ELSE
+		correct := B'1';
+		-- false
+	END IF;
+
+	INSERT INTO answered (playerId, questionId, isCorrect)
+	VALUES (player, question, correct);
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
 
 CREATE OR REPLACE FUNCTION assign_questions_batch()
     RETURNS TRIGGER AS $$
@@ -257,15 +287,15 @@ VALUES
 
 INSERT INTO teams (teamname, teamLeaderId, active)
 VALUES
-    ('Team1', 1, B'1'),
-    ('Team2', 2, B'1'),
-    ('Team3', 3, B'1');
+	('Team1', 1, B'1'),
+	('Team2', 2, B'1'),
+	('Team3', 3, B'1');
 
 INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 1, 1
 FROM players
 WHERE NOT EXISTS (
-    SELECT playerId
+    SELECT playerId 
     FROM plays
     WHERE plays.playerId = players.playerId
 )
@@ -275,7 +305,7 @@ INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 2, 1
 FROM players
 WHERE NOT EXISTS (
-    SELECT playerId
+    SELECT playerId 
     FROM plays
     WHERE plays.playerId = players.playerId
 )
@@ -292,14 +322,17 @@ WHERE NOT EXISTS (
 )
 LIMIT 4;
 
-
 INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points, difficulty)
 VALUES
-    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb','pink','grün',1, 10, 3),
-    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 10,2),
-    (3, 'welche farbe hat die Milch?', 'blau', 'gelb','pink','weiß',4,10,5),
-    (4, 'was ist ein Baum ','wasser','Pflanze','Himbeersaft','Cola',2,10, 1),
-    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade','orange','grün',3,10, 2),
-    (6, 'was ist eis','wasser','lecker','Himbeersaft','Cola',2,10, 4),
-    (7, 'welche farbe hat das wasser?', 'blau', 'kalt','Loch Ness','grün',3,10, 1),
-    (8, 'was ist eine Katze','wasser','Tier','Himbeersaft','Süß',4,10, 3);
+    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1, 30, 3),
+    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 20, 2),
+    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4, 50, 5),
+    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10, 1),
+    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10, 2),
+    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10, 4),
+    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10, 1),
+    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10, 3),
+	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1, 1);
+
+SELECT answer_question(1, 1, 1);
+SELECT answer_question(7, 2, 5);

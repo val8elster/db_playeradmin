@@ -201,14 +201,14 @@ CREATE TRIGGER firstquestion
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
 
-CREATE OR REPLACE FUNCTION assign_questions_batch(gamedi INT)
-    RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION assign_questions_batch()
+    RETURNS TRIGGER AS $$
 DECLARE
     question_record RECORD;
     question_cursor CURSOR FOR
         SELECT questionId, qname
         FROM questions
-        WHERE questionId NOT IN (SELECT questionId FROM features WHERE gamedi = features.gameId)
+        WHERE questionId NOT IN (SELECT questionId FROM features WHERE NEW.gameId = features.gameId)
         ORDER BY RANDOM()
         LIMIT 5;
 BEGIN
@@ -216,9 +216,10 @@ BEGIN
     FOR question_record IN question_cursor
         LOOP
             INSERT INTO features(gameId, questionId, qname)
-            VALUES (gameId, question_record.questionId, question_record.qname);
+            VALUES (NEW.gameId, question_record.questionId, question_record.qname);
         END LOOP;
     CLOSE question_cursor;
+    RETURN NEW;
 END
 $$ LANGUAGE plpgsql;
 
@@ -226,8 +227,7 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER assignquestion
     AFTER INSERT ON features
     FOR EACH ROW
-EXECUTE FUNCTION assign_questions_batch(gameId);
-
+EXECUTE PROCEDURE assign_questions_batch();
 
 INSERT INTO players (name)
 VALUES

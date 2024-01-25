@@ -5,7 +5,7 @@ CREATE TABLE players (
 );
 
 CREATE TABLE games (
-    gameID SERIAL PRIMARY KEY,
+    gameId SERIAL PRIMARY KEY,
     gameLeaderId INT REFERENCES players(playerId) ON DELETE SET NULL,
     active BIT
 );
@@ -13,7 +13,7 @@ CREATE TABLE games (
 CREATE TABLE teams (
     teamId SERIAL PRIMARY KEY,
     teamleaderID INT REFERENCES players(playerId) ON DELETE SET NULL,
-    gameId INT REFERENCES games(gameID) ON DELETE SET NULL,
+    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     points INT DEFAULT 0,
     teamname VARCHAR(20) UNIQUE,
 	active BIT
@@ -49,17 +49,17 @@ CREATE TABLE answered (
 CREATE TABLE plays (
     teamId INT REFERENCES teams(teamId) ON DELETE SET NULL,
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
-    gameId INT REFERENCES games(gameID) ON DELETE SET NULL,
+    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     PRIMARY KEY(playerId)
 );
 
 CREATE TABLE partOf (
-    gameId INT REFERENCES games(gameID) ON DELETE SET NULL,
+    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     sessionId INT REFERENCES sessions(sessionId) ON DELETE SET NULL,
     PRIMARY KEY(sessionId)
 );
 CREATE TABLE features (
-                          gameId INT REFERENCES games(gameID) ON DELETE SET NULL,
+                          gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
                           questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
                           qname VARCHAR(50),
                           PRIMARY KEY(gameId, questionId),
@@ -104,7 +104,7 @@ BEGIN
         END LOOP;
 
     UPDATE partOf
-    SET gameId = g.gameID
+    SET gameId = g.gameId
     FROM games g
     WHERE partOf.sessionId IN (
         SELECT s.sessionId
@@ -172,7 +172,7 @@ DECLARE
     firstquestionID INT;
     firstquestionIDname VARCHAR(50);
 BEGIN
-    SELECT gameID INTO game_id
+    SELECT gameId INTO game_id
     FROM games
     WHERE active = B'1'
     LIMIT 1;

@@ -301,6 +301,10 @@ CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
 RETURNS VOID AS $$
 DECLARE
 	correct BIT;
+	team INT;
+	prevPoints INT;
+	prevTpoints INT;
+	qPoints INT;
 BEGIN
 	IF(
 		(SELECT rightAnswer
@@ -311,6 +315,15 @@ BEGIN
 	THEN
 		correct := B'0';
 		-- true
+
+		team := SELECT teamId FROM plays WHERE playerId = player;
+
+		prevPPoints := SELECT points FROM players WHERE playerId = player;
+		prevTPoints := SELECT points FROM teams WHERE teamId = team;
+		qPoints := SELECT poins FROM questions WHERE question_id = question;
+
+		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
+		UPDATE teams SET points = (prevTpoints - qPoints) WHERE teamId = team;
 	ELSE
 		correct := B'1';
 		-- false

@@ -248,6 +248,16 @@ EXECUTE PROCEDURE assign_questions_batch();
 
 
 
+--function that assigns the correct difficulty values in the player statistic
+CREATE OR REPLACE FUNCTION add_difficulty_answer(question INT, player INT)
+RETURNS VOID AS $$
+BEGIN 
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 --delivers an answer to a question, check, if it is correct and then points. 
 --@Val: need to check, if valid. possibly link to the assigning trigger.
 CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
@@ -279,6 +289,8 @@ BEGIN
 		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
 
 		UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
+        
+        SELECT add_difficulty_answer(question, player);
 	ELSE
 		correct := B'1';
 		-- false

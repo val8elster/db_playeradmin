@@ -319,6 +319,33 @@ EXECUTE FUNCTION create_statistic_for_question();
 
 
 
+CREATE OR REPLACE FUNCTION assign_next_question()
+	RETURNS TRIGGER AS $$
+DECLARE
+	question_record RECORD;
+BEGIN
+
+	SELECT questionId, qname
+	INTO question_record
+	FROM questions
+	WHERE questionId NOT IN (SELECT questionId FROM features WHERE features.gameId = NEW.gameId)
+	ORDER BY RANDOM()
+	LIMIT 1;
+
+
+	INSERT INTO features(gameId, questionId, qname)
+	VALUES (NEW.gameId, question_record.questionId, question_record.qname);
+
+	RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER nextquestion
+	AFTER INSERT ON features
+	FOR EACH ROW
+EXECUTE FUNCTION assign_next_question();
+
 
 CREATE OR REPLACE FUNCTION assign_questions_batch()
     RETURNS TRIGGER AS $$

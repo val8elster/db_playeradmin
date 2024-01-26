@@ -195,9 +195,12 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION calculate_points()
 RETURNS VOID AS $$
 BEGIN 
-	
+	UPDATE questions q
+	SET points = sq.difficulty * 10
+	FROM statisticsQuestions sq
+	WHERE q.questionId = sq.questionId;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 
 
 
@@ -569,17 +572,17 @@ VALUES
 
 
 
-INSERT INTO statisticsQuestions(questionId)
+INSERT INTO statisticsQuestions(questionId, difficulty)
 VALUES
-	(1),
-	(2),
-	(3),
-	(4),
-	(5),
-	(6),
-	(7),
-	(8),
-	(9);
+	(1, 1),
+	(2, 1),
+	(3, 1),
+	(4, 1),
+	(5, 1),
+	(6, 1),
+	(7, 1),
+	(8, 1),
+	(9, 1);
 
 
 

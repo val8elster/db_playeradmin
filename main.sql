@@ -67,6 +67,7 @@ CREATE TABLE features (
     FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
 );
 
+
 CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     rightAnswers INT DEFAULT 0,
@@ -75,8 +76,7 @@ CREATE TABLE statisticsQuestions (
 );
 
 CREATE TABLE statisticsPlayer (
-    placement INT PRIMARY KEY,
-    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
+    placement INT PRIMARY KEY,    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
     questionsRight INT DEFAULT 0,
     questionsWrong INT DEFAULT 0
@@ -87,89 +87,89 @@ CREATE TABLE statisticsPlayer (
 
 
 CREATE OR REPLACE FUNCTION initialize()
-RETURNS VOID AS $$
+    RETURNS VOID AS $$
 DECLARE
-	i INT := 0;
+    i INT := 0;
 BEGIN
-	INSERT INTO sessions(maxPinT, active)
-		VALUES(5, B'1');
+    INSERT INTO sessions(maxPinT, active)
+    VALUES(5, B'1');
 
-	FOR i IN 0..2 LOOP
-		INSERT INTO games(active)
-			VALUES(B'1');
-		INSERT INTO partOf(sessionId)
-		SELECT sessionId
-		FROM sessions
-		WHERE active = B'1'
-		AND NOT EXISTS (
-			SELECT sessionId
-			FROM partOf
-			WHERE sessionId = sessions.sessionID
-		);
-	END LOOP;
+    FOR i IN 0..2 LOOP
+            INSERT INTO games(active)
+            VALUES(B'1');
+            INSERT INTO partOf(sessionId)
+            SELECT sessionId
+            FROM sessions
+            WHERE active = B'1'
+              AND NOT EXISTS (
+                SELECT sessionId
+                FROM partOf
+                WHERE sessionId = sessions.sessionID
+            );
+        END LOOP;
 
-	UPDATE partOf
-	SET gameId = g.gameId
-	FROM games g
-	WHERE partOf.sessionId IN (
-		SELECT s.sessionId
-		FROM sessions s
-		WHERE s.active = B'1'
-		AND g.active = B'1'
-	);
+    UPDATE partOf
+    SET gameId = g.gameId
+    FROM games g
+    WHERE partOf.sessionId IN (
+        SELECT s.sessionId
+        FROM sessions s
+        WHERE s.active = B'1'
+          AND g.active = B'1'
+    );
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION decomp()
-RETURNS VOID AS $$
-BEGIN 
-	UPDATE sessions 
-	SET active = B'0'
-	WHERE active = B'1';
+    RETURNS VOID AS $$
+BEGIN
+    UPDATE sessions
+    SET active = B'0'
+    WHERE active = B'1';
 
-	UPDATE games
-	SET active = B'0'
-	WHERE active = B'1';
+    UPDATE games
+    SET active = B'0'
+    WHERE active = B'1';
 
-	UPDATE teams
-	SET active = B'0'
-	WHERE active = B'1';
+    UPDATE teams
+    SET active = B'0'
+    WHERE active = B'1';
 
-	UPDATE plays
-	SET teamId = NULL, gameId = NULL
-	WHERE teamId IS NOT NULL;
+    UPDATE plays
+    SET teamId = NULL, gameId = NULL
+    WHERE teamId IS NOT NULL;
 END;
 $$ LANGUAGE plpgsql;
 
 
 
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
-RETURNS TRIGGER AS $$
-DECLARE 
-	game_session RECORD;
+    RETURNS TRIGGER AS $$
+DECLARE
+    game_session RECORD;
 BEGIN
-    	UPDATE plays
-	SET teamId = NEW.teamId
-	WHERE plays.playerId = NEW.teamLeaderId AND plays.gameId IS NULL;
+    UPDATE plays
+    SET teamId = NEW.teamId
+    WHERE plays.playerId = NEW.teamLeaderId AND plays.gameId IS NULL;
 
-	FOR game_session IN (
-		SELECT gameId, sessionId
-		FROM partOf
-		WHERE gameId IS NOT NULL AND sessionId IS NOT NULL
- 	) LOOP
-		UPDATE plays
-        	SET gameId = game_session.gameId
-        	FROM players
-        	WHERE teamId = NEW.teamId;
+    FOR game_session IN (
+        SELECT gameId, sessionId
+        FROM partOf
+        WHERE gameId IS NOT NULL AND sessionId IS NOT NULL
+    ) LOOP
+            UPDATE plays
+            SET gameId = game_session.gameId
+            FROM players
+            WHERE teamId = NEW.teamId;
 
-    	END LOOP;
-	RETURN NEW;
+        END LOOP;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER tteamleader
-AFTER INSERT ON teams
-FOR EACH ROW
+    AFTER INSERT ON teams
+    FOR EACH ROW
 EXECUTE FUNCTION add_team_leader_to_plays();
 
 
@@ -201,7 +201,7 @@ BEGIN
     RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
     RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
-
+    PERFORM assign_questions_batch();
 END
 $$ LANGUAGE plpgsql;
 
@@ -218,11 +218,11 @@ DECLARE
 	correct BIT;
 BEGIN
 	IF(
-		(SELECT rightAnswer 
+		(SELECT rightAnswer
 		FROM questions
 		WHERE (questionId = question))
 		= answer
-	)	
+	)
 	THEN
 		correct := B'0';
 		-- true
@@ -230,7 +230,7 @@ BEGIN
 		correct := B'1';
 		-- false
 	END IF;
-	
+
 	INSERT INTO answered (playerId, questionId, isCorrect, added)
 	VALUES (player, question, correct, B'1');
 END;
@@ -245,7 +245,7 @@ DECLARE
 	righta INT;
 	wronga INT;
 	question_id INT;
-BEGIN 
+BEGIN
 	SELECT questionId INTO question_id
 	FROM answered
 	WHERE nom = question_row;
@@ -253,21 +253,21 @@ BEGIN
 	SELECT rightAnswers, wrongAnswers INTO righta, wronga
     FROM statisticsQuestions
     WHERE questionId = question_id;
-		
+
 	IF (righta + wronga != 0)
 	THEN
 		dif := ((10 - (righta * 10) / (righta + wronga)) / 2);
 		IF(dif = 0)
-		THEN 
+		THEN
 			dif := 1;
 		END IF;
 	ELSE
 		dif := 0;
 	END IF;
 
-		
-	UPDATE statisticsQuestions 
-	SET difficulty = dif 
+
+	UPDATE statisticsQuestions
+	SET difficulty = dif
 	WHERE questionId = question_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -283,14 +283,14 @@ BEGIN
     SELECT questionId INTO question_id
     FROM answered
 	ORDER BY nom DESC
-    LIMIT 1; 
-	
+    LIMIT 1;
+
 	SELECT nom into col
 	FROM answered
 	ORDER BY nom DESC
 	LIMIT 1;
 
-    IF (SELECT isCorrect FROM answered WHERE nom = col) = B'0' 
+    IF (SELECT isCorrect FROM answered WHERE nom = col) = B'0'
 	THEN
         UPDATE statisticsQuestions
         SET rightAnswers = rightAnswers + 1
@@ -300,13 +300,13 @@ BEGIN
         SET wrongAnswers = wrongAnswers + 1
         WHERE questionId = question_id;
     END IF;
-	
-	UPDATE answered 
+
+	UPDATE answered
 	SET added = B'0'
 	WHERE added = B'1';
-	
+
 	PERFORM check_difficulty(col);
-	
+
 	RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -319,6 +319,34 @@ EXECUTE FUNCTION create_statistic_for_question();
 
 
 
+
+CREATE OR REPLACE FUNCTION assign_questions_batch()
+    RETURNS TRIGGER AS $$
+DECLARE
+    question_record RECORD;
+    question_cursor CURSOR FOR
+        SELECT questionId, qname
+        FROM questions
+        WHERE questionId NOT IN (SELECT questionId FROM features WHERE NEW.gameId = features.gameId)
+        ORDER BY RANDOM()
+        LIMIT 5;
+BEGIN
+    OPEN question_cursor;
+    FOR question_record IN question_cursor
+        LOOP
+            INSERT INTO features(gameId, questionId, qname)
+            VALUES (NEW.gameId, question_record.questionId, question_record.qname);
+        END LOOP;
+    CLOSE question_cursor;
+    RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER assignquestion
+    AFTER INSERT ON features
+    FOR EACH ROW
+EXECUTE PROCEDURE assign_questions_batch();
 
 INSERT INTO players (name)
 VALUES
@@ -377,7 +405,7 @@ INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 3, 1
 FROM players
 WHERE NOT EXISTS (
-    SELECT playerId 
+    SELECT playerId
     FROM plays
     WHERE plays.playerId = players.playerId
 )
@@ -422,3 +450,5 @@ SELECT answer_question(1, 3, 1);
 SELECT answer_question(3, 4, 2);
 
 SELECT answer_question(7, 2, 5);
+
+

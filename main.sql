@@ -95,7 +95,7 @@ CREATE TABLE statisticsQuestions (
 
 CREATE TABLE statisticsPlayer (
     placement INT PRIMARY KEY,    
-	playerId INT REFERENCES players(playerId) ON DELETE CASCADE,
+	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
     questionsRight INT DEFAULT 0,
     questionsWrong INT DEFAULT 0
@@ -455,6 +455,8 @@ VALUES
 	('Team1', 1, B'1'),
 	('Team2', 2, B'1'),
 	('Team3', 3, B'1');
+
+
 
 INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 1, 1

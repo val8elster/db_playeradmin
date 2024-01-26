@@ -159,6 +159,16 @@ BEGIN
     UPDATE plays
     SET teamId = NULL, gameId = NULL
     WHERE teamId IS NOT NULL;
+
+	PERFORM update_stats();
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_stats()
+RETURNS VOID AS $$
+BEGIN 
+	
 END;
 $$ LANGUAGE plpgsql;
 

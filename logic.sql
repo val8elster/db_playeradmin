@@ -1,3 +1,19 @@
+CREATE OR REPLACE FUNCTION change_teamname()
+RETURNS VOID AS $$
+BEGIN 
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION change_playername()
+RETURNS VOID AS $$
+BEGIN 
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION initialize()
     RETURNS VOID AS $$
 DECLARE

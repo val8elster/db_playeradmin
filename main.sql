@@ -85,7 +85,7 @@ CREATE TABLE features (
 
 
 CREATE TABLE statisticsQuestions (
-    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
+    questionId INT REFERENCES questions(questionId) ON DELETE CASCADE,
     rightAnswers INT DEFAULT 0,
     wrongAnswers INT DEFAULT 0,
 	difficulty INT CHECK (difficulty IN (0,1,2,3,4,5))
@@ -95,7 +95,7 @@ CREATE TABLE statisticsQuestions (
 
 CREATE TABLE statisticsPlayer (
     placement INT PRIMARY KEY,    
-	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
+	playerId INT REFERENCES players(playerId) ON DELETE CASCADE,
     points INT DEFAULT 0,
     questionsRight INT DEFAULT 0,
     questionsWrong INT DEFAULT 0

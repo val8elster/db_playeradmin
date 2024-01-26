@@ -302,7 +302,7 @@ RETURNS VOID AS $$
 DECLARE
 	correct BIT;
 	team INT;
-	prevPoints INT;
+	prevPPoints INT;
 	prevTpoints INT;
 	qPoints INT;
 BEGIN
@@ -316,11 +316,11 @@ BEGIN
 		correct := B'0';
 		-- true
 
-		team := SELECT teamId FROM plays WHERE playerId = player;
+		team := (SELECT teamId FROM plays WHERE playerId = player);
 
-		prevPPoints := SELECT points FROM players WHERE playerId = player;
-		prevTPoints := SELECT points FROM teams WHERE teamId = team;
-		qPoints := SELECT poins FROM questions WHERE question_id = question;
+		prevPPoints := (SELECT points FROM players WHERE playerId = player);
+		prevTPoints := (SELECT points FROM teams WHERE teamId = team);
+		qPoints := (SELECT poins FROM questions WHERE question_id = question);
 
 		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
 		UPDATE teams SET points = (prevTpoints - qPoints) WHERE teamId = team;

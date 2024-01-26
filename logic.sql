@@ -1,14 +1,49 @@
-CREATE OR REPLACE FUNCTION change_teamname()
+CREATE OR REPLACE FUNCTION change_teamname(player INT, team INT, newName VARCHAR(20))
 RETURNS VOID AS $$
 BEGIN 
+    IF (
+        (SELECT teamLeaderId 
+        FROM teams
+        WHERE teamId = team)
+        = player
+    )
+    THEN
+        IF NOT EXISTS (
+            SELECT teamId
+            FROM teams
+            WHERE teamname = newName
+        )
+        THEN
+            UPDATE teams
+            SET teamname = newName
+            WHERE teamId = team;
+        END IF;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION change_playername()
+CREATE OR REPLACE FUNCTION change_playername(player INT, newName VARCHAR(20))
 RETURNS VOID AS $$
 BEGIN 
+    IF EXISTS (
+        SELECT name 
+        FROM players 
+        WHERE playerId = player
+    )
+    THEN    
+        IF NOT EXISTS (
+            SELECT playerId
+            FROM players
+            WHERE name = newName
+        )
+        THEN
+            UPDATE players 
+            SET name = newName 
+            WHERE playerId = player;
+        END IF;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 

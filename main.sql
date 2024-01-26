@@ -171,16 +171,19 @@ DECLARE
 BEGIN 
 	WITH RankedPlayers AS (
 		SELECT
-			playerId,
-			points,
-			ROW_NUMBER() OVER (ORDER BY points DESC) AS placement
+			sp.playerId,
+			p.points,
+			sp.questionRatio,
+			ROW_NUMBER() OVER (ORDER BY p.points DESC, sp.questionRatio DESC, sp.playerId) AS placement
 		FROM
-			players
+			statisticsPlayer sp
+		JOIN players p ON sp.playerId = p.playerId
 	)
 	
 	UPDATE statisticsPlayer sp
 	SET 
 		points = rp.points,
+		questionRatio = rp.questionRatio,
 		placement = rp.placement
 	FROM RankedPlayers rp
 	WHERE sp.playerId = rp.playerId;

@@ -94,7 +94,8 @@ CREATE TABLE statisticsQuestions (
 
 
 CREATE TABLE statisticsPlayer (
-    placement INT PRIMARY KEY,    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
+    placement INT PRIMARY KEY,    
+	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
     questionsRight INT DEFAULT 0,
     questionsWrong INT DEFAULT 0

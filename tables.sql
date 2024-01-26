@@ -98,5 +98,11 @@ CREATE TABLE statisticsPlayer (
 	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
     questionRatio INT DEFAULT 0,
+    difficulty1Answered INT DEFAULT 0,
+    difficulty2Answered INT DEFAULT 0,
+    difficulty3Answered INT DEFAULT 0,
+    difficulty4Answered INT DEFAULT 0,
+    difficulty5Answered INT DEFAULT 0,
+    proficiency INT DEFAULT 0,   
 	PRIMARY KEY(playerId)
 );

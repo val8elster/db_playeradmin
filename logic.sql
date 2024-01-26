@@ -1,110 +1,3 @@
-CREATE TABLE players (
-    playerId SERIAL PRIMARY KEY,
-    name VARCHAR(20) UNIQUE,
-    points INT DEFAULT 0
-);
-
-
-
-CREATE TABLE games (
-    gameId SERIAL PRIMARY KEY,
-    gameLeaderId INT REFERENCES players(playerId) ON DELETE SET NULL,
-    active BIT
-);
-
-
-
-CREATE TABLE teams (
-    teamId SERIAL PRIMARY KEY,
-    teamleaderID INT REFERENCES players(playerId) ON DELETE SET NULL,
-    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    points INT DEFAULT 0,
-    teamname VARCHAR(20) UNIQUE,
-	active BIT
-);
-
-
-
-CREATE TABLE sessions (
-    sessionId SERIAL PRIMARY KEY,
-    maxPinT INT NOT NULL,
-    active BIT
-);
-
-
-
-CREATE TABLE questions (
-	questionId SERIAL PRIMARY KEY,
-	answer1 VARCHAR(40) NOT NULL,
-    answer2 VARCHAR(40) NOT NULL,
-	answer3 VARCHAR(40) NOT NULL,
-    answer4 VARCHAR(40) NOT NULL,
-    rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
-    qname VARCHAR(50) NOT NULL,
-    points INT NOT NULL,
-    UNIQUE(qname, questionId)
-);
-
-
-
-CREATE TABLE answered (
-	nom SERIAL PRIMARY KEY,
-    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
-    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-    isCorrect BIT,
-	added BIT
-);
-
-
-
-CREATE TABLE plays (
-    teamId INT REFERENCES teams(teamId) ON DELETE SET NULL,
-    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
-    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    PRIMARY KEY(playerId)
-);
-
-
-
-CREATE TABLE partOf (
-    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    sessionId INT REFERENCES sessions(sessionId) ON DELETE SET NULL,
-    PRIMARY KEY(sessionId)
-);
-
-
-
-CREATE TABLE features (
-    gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
-    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-    qname VARCHAR(50),
-    PRIMARY KEY(gameId, questionId),
-    FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
-);
-
-
-
-CREATE TABLE statisticsQuestions (
-    questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-    rightAnswers INT DEFAULT 0,
-    wrongAnswers INT DEFAULT 0,
-	difficulty INT CHECK (difficulty IN (0,1,2,3,4,5))
-);
-
-
-
-CREATE TABLE statisticsPlayer (
-    placement INT PRIMARY KEY,    
-	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
-    points INT DEFAULT 0,
-    questionsRight INT DEFAULT 0,
-    questionsWrong INT DEFAULT 0
-);
-
-
-
-
-
 CREATE OR REPLACE FUNCTION initialize()
     RETURNS VOID AS $$
 DECLARE
@@ -142,7 +35,7 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION decomp()
-    RETURNS VOID AS $$
+RETURNS VOID AS $$
 BEGIN
     UPDATE sessions
     SET active = B'0'
@@ -159,6 +52,71 @@ BEGIN
     UPDATE plays
     SET teamId = NULL, gameId = NULL
     WHERE teamId IS NOT NULL;
+
+	PERFORM update_stats();
+	PERFORM calculate_points();
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_stats()
+RETURNS VOID AS $$
+DECLARE 
+	pl INT;
+BEGIN 
+	WITH RankedPlayers AS (
+		SELECT
+			sp.playerId,
+			p.points,
+			sp.questionRatio,
+			ROW_NUMBER() OVER (ORDER BY p.points DESC, sp.questionRatio DESC, sp.playerId) AS placement
+		FROM
+			statisticsPlayer sp
+		JOIN players p ON sp.playerId = p.playerId
+	)
+	
+	UPDATE statisticsPlayer sp
+	SET 
+		points = rp.points,
+		questionRatio = rp.questionRatio,
+		placement = rp.placement
+	FROM RankedPlayers rp
+	WHERE sp.playerId = rp.playerId;
+
+    FOR pl IN SELECT playerId FROM statisticsPlayer
+    LOOP
+        PERFORM calculate_proficiency(pl);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION calculate_proficiency(player INT)
+RETURNS VOID AS $$
+DECLARE
+    sum INT;
+BEGIN 
+    sum := ((((SELECT difficulty1Answered FROM statisticsPlayer WHERE playerId = player) * 1) + 
+            ((SELECT difficulty2Answered FROM statisticsPlayer WHERE playerId = player) * 4) + 
+            ((SELECT difficulty3Answered FROM statisticsPlayer WHERE playerId = player) * 9) + 
+            ((SELECT difficulty4Answered FROM statisticsPlayer WHERE playerId = player) * 16) + 
+            ((SELECT difficulty5Answered FROM statisticsPlayer WHERE playerId = player) * 25))/10);
+
+    UPDATE statisticsPlayer 
+    SET proficiency = sum
+    WHERE playerId = player;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION calculate_points()
+RETURNS VOID AS $$
+BEGIN 
+	UPDATE questions q
+	SET points = sq.difficulty * 10
+	FROM statisticsQuestions sq
+	WHERE q.questionId = sq.questionId;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -297,10 +255,36 @@ EXECUTE PROCEDURE assign_questions_batch();
 
 
 
+CREATE OR REPLACE FUNCTION add_difficulty_answer(question INT, player INT)
+RETURNS VOID AS $$
+DECLARE 
+    diff INT;
+BEGIN 
+    diff := (SELECT difficulty 
+            FROM statisticsQuestions
+            WHERE questionID = question);
+			
+    UPDATE statisticsPlayer
+    SET 
+        difficulty1Answered = difficulty1Answered + CASE WHEN diff = 1 THEN 1 ELSE 0 END,
+        difficulty2Answered = difficulty2Answered + CASE WHEN diff = 2 THEN 1 ELSE 0 END,
+        difficulty3Answered = difficulty3Answered + CASE WHEN diff = 3 THEN 1 ELSE 0 END,
+        difficulty4Answered = difficulty4Answered + CASE WHEN diff = 4 THEN 1 ELSE 0 END,
+        difficulty5Answered = difficulty5Answered + CASE WHEN diff = 5 THEN 1 ELSE 0 END
+    WHERE playerId = player;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
 RETURNS VOID AS $$
 DECLARE
 	correct BIT;
+	team INT;
+	prevPPoints INT;
+	prevTpoints INT;
+	qPoints INT;
 BEGIN
 	IF(
 		(SELECT rightAnswer
@@ -311,9 +295,24 @@ BEGIN
 	THEN
 		correct := B'0';
 		-- true
+
+		team := (SELECT teamId FROM plays WHERE playerId = player);
+
+		prevPPoints := (SELECT points FROM players WHERE playerId = player);
+		prevTPoints := (SELECT points FROM teams WHERE teamId = team);
+		qPoints := (SELECT points FROM questions WHERE questionId = question);
+
+		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
+		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
+
+		UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
+		
+		PERFORM add_difficulty_answer(question, player);
 	ELSE
 		correct := B'1';
 		-- false
+
+		UPDATE statisticsPlayer SET questionRatio = (questionRatio - 1) WHERE playerId = player;
 	END IF;
 
 	INSERT INTO answered (playerId, questionId, isCorrect, added)
@@ -347,7 +346,7 @@ BEGIN
 			dif := 1;
 		END IF;
 	ELSE
-		dif := 0;
+		dif := 1;
 	END IF;
 
 
@@ -400,125 +399,3 @@ CREATE TRIGGER tqueststat
 AFTER INSERT ON answered
 FOR EACH STATEMENT
 EXECUTE FUNCTION create_statistic_for_question();
-
-
-
-
-
-INSERT INTO players (name)
-VALUES
-    ('Player1'),
-	('Player2'),
-	('Player3'),
-	('Player4'),
-	('Player5'),
-	('Player6'),
-	('Player7'),
-	('Player8'),
-	('Player9'),
-	('Player10'),
-	('Player11'),
-	('Player12'),
-	('Player13'),
-	('Player14'),
-	('Player15');
-
-
-
-SELECT initialize();
-
-
-
-INSERT INTO plays (playerId)
-VALUES 
-	(1), 
-	(2), 
-	(3);
-
-
-
-INSERT INTO teams (teamname, teamLeaderId, active)
-VALUES
-	('Team1', 1, B'1'),
-	('Team2', 2, B'1'),
-	('Team3', 3, B'1');
-
-INSERT INTO plays (playerId, teamId, gameId)
-SELECT playerId, 1, 1
-FROM players
-WHERE NOT EXISTS (
-    SELECT playerId 
-    FROM plays
-    WHERE plays.playerId = players.playerId
-)
-LIMIT 4;
-
-
-
-INSERT INTO plays (playerId, teamId, gameId)
-SELECT playerId, 2, 1
-FROM players
-WHERE NOT EXISTS (
-    SELECT playerId 
-    FROM plays
-    WHERE plays.playerId = players.playerId
-)
-LIMIT 4;
-
-
-
-INSERT INTO plays (playerId, teamId, gameId)
-SELECT playerId, 3, 1
-FROM players
-WHERE NOT EXISTS (
-    SELECT playerId
-    FROM plays
-    WHERE plays.playerId = players.playerId
-)
-LIMIT 4;
-
-
-
-INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points)
-VALUES
-    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1, 30),
-    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 20),
-    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4, 50),
-    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10),
-    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10),
-    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10),
-    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10),
-    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10),
-	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1);
-
-
-
-INSERT INTO statisticsQuestions(questionId)
-VALUES
-	(1),
-	(2),
-	(3),
-	(4),
-	(5),
-	(6),
-	(7),
-	(8),
-	(9);
-
-
-
--- question, answer, player
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 3, 1);
-SELECT answer_question(1, 2, 1);
-SELECT answer_question(1, 3, 1);
-
-SELECT answer_question(3, 4, 2);
-
-SELECT answer_question(7, 2, 5);

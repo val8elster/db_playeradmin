@@ -97,7 +97,7 @@ CREATE TABLE statisticsPlayer (
     placement INT UNIQUE,    
 	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
-    questionRatio INT DEFAULT 0;
+    questionRatio INT DEFAULT 0,
 	PRIMARY KEY(playerId)
 );
 
@@ -349,9 +349,13 @@ BEGIN
 
 		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
 		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
+
+		UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
 	ELSE
 		correct := B'1';
 		-- false
+
+		UPDATE statisticsPlayer SET questionRatio = (questionRatio - 1) WHERE playerId = player;
 	END IF;
 
 	INSERT INTO answered (playerId, questionId, isCorrect, added)

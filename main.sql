@@ -97,8 +97,7 @@ CREATE TABLE statisticsPlayer (
     placement INT UNIQUE,    
 	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
-    questionsRight INT DEFAULT 0,
-    questionsWrong INT DEFAULT 0,
+    questionRatio INT DEFAULT 0;
 	PRIMARY KEY(playerId)
 );
 

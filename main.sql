@@ -317,15 +317,14 @@ FOR EACH STATEMENT
 EXECUTE FUNCTION create_statistic_for_question();
 
 
--- meins
--- Funktion, um die nächste Frage zuzuordnen
--- Funktion, um die nächste Frage zuzuordnen
+
+
 CREATE OR REPLACE FUNCTION assign_next_question()
 	RETURNS TRIGGER AS $$
 DECLARE
 	question_record RECORD;
 BEGIN
-	-- Überprüfen Sie, ob das Feld in der Tabelle "features" korrekt als "gameId" benannt ist
+
 	SELECT questionId, qname
 	INTO question_record
 	FROM questions
@@ -333,7 +332,7 @@ BEGIN
 	ORDER BY RANDOM()
 	LIMIT 1;
 
-	-- Hier gehen Sie davon aus, dass das Feld in der Tabelle "features" "gameId" heißt.
+
 	INSERT INTO features(gameId, questionId, qname)
 	VALUES (NEW.gameId, question_record.questionId, question_record.qname);
 
@@ -341,7 +340,7 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
--- Trigger erstellen
+
 CREATE TRIGGER nextquestion
 	AFTER INSERT ON features
 	FOR EACH ROW

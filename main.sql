@@ -4,11 +4,15 @@ CREATE TABLE players (
     points INT DEFAULT 0
 );
 
+
+
 CREATE TABLE games (
     gameId SERIAL PRIMARY KEY,
     gameLeaderId INT REFERENCES players(playerId) ON DELETE SET NULL,
     active BIT
 );
+
+
 
 CREATE TABLE teams (
     teamId SERIAL PRIMARY KEY,
@@ -19,11 +23,15 @@ CREATE TABLE teams (
 	active BIT
 );
 
+
+
 CREATE TABLE sessions (
     sessionId SERIAL PRIMARY KEY,
     maxPinT INT NOT NULL,
     active BIT
 );
+
+
 
 CREATE TABLE questions (
 	questionId SERIAL PRIMARY KEY,
@@ -47,6 +55,8 @@ CREATE TABLE answered (
 	added BIT
 );
 
+
+
 CREATE TABLE plays (
     teamId INT REFERENCES teams(teamId) ON DELETE SET NULL,
     playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
@@ -54,11 +64,16 @@ CREATE TABLE plays (
     PRIMARY KEY(playerId)
 );
 
+
+
 CREATE TABLE partOf (
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     sessionId INT REFERENCES sessions(sessionId) ON DELETE SET NULL,
     PRIMARY KEY(sessionId)
 );
+
+
+
 CREATE TABLE features (
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
@@ -68,12 +83,15 @@ CREATE TABLE features (
 );
 
 
+
 CREATE TABLE statisticsQuestions (
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
     rightAnswers INT DEFAULT 0,
     wrongAnswers INT DEFAULT 0,
 	difficulty INT CHECK (difficulty IN (0,1,2,3,4,5))
 );
+
+
 
 CREATE TABLE statisticsPlayer (
     placement INT PRIMARY KEY,    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
@@ -119,6 +137,8 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 CREATE OR REPLACE FUNCTION decomp()
     RETURNS VOID AS $$
@@ -167,6 +187,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 CREATE TRIGGER tteamleader
     AFTER INSERT ON teams
     FOR EACH ROW
@@ -205,10 +227,72 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+
+
 CREATE TRIGGER firstquestion
     AFTER INSERT ON features
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
+
+
+
+CREATE OR REPLACE FUNCTION assign_next_question()
+	RETURNS TRIGGER AS $$
+DECLARE
+	question_record RECORD;
+BEGIN
+
+	SELECT questionId, qname
+	INTO question_record
+	FROM questions
+	WHERE questionId NOT IN (SELECT questionId FROM features WHERE features.gameId = NEW.gameId)
+	ORDER BY RANDOM()
+	LIMIT 1;
+
+
+	INSERT INTO features(gameId, questionId, qname)
+	VALUES (NEW.gameId, question_record.questionId, question_record.qname);
+
+	RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE TRIGGER nextquestion
+	AFTER INSERT ON features
+	FOR EACH ROW
+EXECUTE FUNCTION assign_next_question();
+
+
+
+CREATE OR REPLACE FUNCTION assign_questions_batch()
+    RETURNS TRIGGER AS $$
+DECLARE
+    question_record RECORD;
+    question_cursor CURSOR FOR
+        SELECT questionId, qname
+        FROM questions
+        WHERE questionId NOT IN (SELECT questionId FROM features WHERE NEW.gameId = features.gameId)
+        ORDER BY RANDOM()
+        LIMIT 5;
+BEGIN
+    OPEN question_cursor;
+    FOR question_record IN question_cursor
+        LOOP
+            INSERT INTO features(gameId, questionId, qname)
+            VALUES (NEW.gameId, question_record.questionId, question_record.qname);
+        END LOOP;
+    CLOSE question_cursor;
+    RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER assignquestion
+    AFTER INSERT ON features
+    FOR EACH ROW
+EXECUTE PROCEDURE assign_questions_batch();
 
 
 
@@ -319,61 +403,6 @@ EXECUTE FUNCTION create_statistic_for_question();
 
 
 
-CREATE OR REPLACE FUNCTION assign_next_question()
-	RETURNS TRIGGER AS $$
-DECLARE
-	question_record RECORD;
-BEGIN
-
-	SELECT questionId, qname
-	INTO question_record
-	FROM questions
-	WHERE questionId NOT IN (SELECT questionId FROM features WHERE features.gameId = NEW.gameId)
-	ORDER BY RANDOM()
-	LIMIT 1;
-
-
-	INSERT INTO features(gameId, questionId, qname)
-	VALUES (NEW.gameId, question_record.questionId, question_record.qname);
-
-	RETURN NEW;
-END
-$$ LANGUAGE plpgsql;
-
-
-CREATE TRIGGER nextquestion
-	AFTER INSERT ON features
-	FOR EACH ROW
-EXECUTE FUNCTION assign_next_question();
-
-
-CREATE OR REPLACE FUNCTION assign_questions_batch()
-    RETURNS TRIGGER AS $$
-DECLARE
-    question_record RECORD;
-    question_cursor CURSOR FOR
-        SELECT questionId, qname
-        FROM questions
-        WHERE questionId NOT IN (SELECT questionId FROM features WHERE NEW.gameId = features.gameId)
-        ORDER BY RANDOM()
-        LIMIT 5;
-BEGIN
-    OPEN question_cursor;
-    FOR question_record IN question_cursor
-        LOOP
-            INSERT INTO features(gameId, questionId, qname)
-            VALUES (NEW.gameId, question_record.questionId, question_record.qname);
-        END LOOP;
-    CLOSE question_cursor;
-    RETURN NEW;
-END
-$$ LANGUAGE plpgsql;
-
-
-CREATE TRIGGER assignquestion
-    AFTER INSERT ON features
-    FOR EACH ROW
-EXECUTE PROCEDURE assign_questions_batch();
 
 INSERT INTO players (name)
 VALUES
@@ -393,13 +422,19 @@ VALUES
 	('Player14'),
 	('Player15');
 
+
+
 SELECT initialize();
+
+
 
 INSERT INTO plays (playerId)
 VALUES 
 	(1), 
 	(2), 
 	(3);
+
+
 
 INSERT INTO teams (teamname, teamLeaderId, active)
 VALUES
@@ -417,6 +452,8 @@ WHERE NOT EXISTS (
 )
 LIMIT 4;
 
+
+
 INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 2, 1
 FROM players
@@ -428,6 +465,7 @@ WHERE NOT EXISTS (
 LIMIT 4;
 
 
+
 INSERT INTO plays (playerId, teamId, gameId)
 SELECT playerId, 3, 1
 FROM players
@@ -437,6 +475,8 @@ WHERE NOT EXISTS (
     WHERE plays.playerId = players.playerId
 )
 LIMIT 4;
+
+
 
 INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points)
 VALUES
@@ -450,6 +490,8 @@ VALUES
     (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10),
 	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1);
 
+
+
 INSERT INTO statisticsQuestions(questionId)
 VALUES
 	(1),
@@ -461,6 +503,8 @@ VALUES
 	(7),
 	(8),
 	(9);
+
+
 
 -- question, answer, player
 SELECT answer_question(1, 1, 1);
@@ -477,5 +521,3 @@ SELECT answer_question(1, 3, 1);
 SELECT answer_question(3, 4, 2);
 
 SELECT answer_question(7, 2, 5);
-
-

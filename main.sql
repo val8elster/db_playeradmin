@@ -94,11 +94,12 @@ CREATE TABLE statisticsQuestions (
 
 
 CREATE TABLE statisticsPlayer (
-    placement INT PRIMARY KEY,    
+    placement INT UNIQUE,    
 	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
     points INT DEFAULT 0,
     questionsRight INT DEFAULT 0,
-    questionsWrong INT DEFAULT 0
+    questionsWrong INT DEFAULT 0,
+	PRIMARY KEY(playerId)
 );
 
 
@@ -142,7 +143,7 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION decomp()
-    RETURNS VOID AS $$
+RETURNS VOID AS $$
 BEGIN
     UPDATE sessions
     SET active = B'0'
@@ -166,13 +167,24 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION update_stats()
-RETURNS VOID AS $$ 
+RETURNS VOID AS $$
+DECLARE 
 BEGIN 
-	DELETE * FROM statisticsPlayer;
-
-	INSERT INTO statisticsPlayer
-	SELECT * FROM players 
-	ORDER BY points;
+	WITH RankedPlayers AS (
+		SELECT
+			playerId,
+			points,
+			ROW_NUMBER() OVER (ORDER BY points DESC) AS placement
+		FROM
+			players
+	)
+	
+	UPDATE statisticsPlayer sp
+	SET 
+		points = rp.points,
+		placement = rp.placement
+	FROM RankedPlayers rp
+	WHERE sp.playerId = rp.playerId;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -449,6 +461,26 @@ VALUES
 	('Player13'),
 	('Player14'),
 	('Player15');
+	
+
+
+INSERT INTO statisticsPlayer (playerId)
+VALUES
+	(1),
+	(2),
+	(3),
+	(4),
+	(5),
+	(6),
+	(7),
+	(8),
+	(9),
+	(10),
+	(11),
+	(12),
+	(13), 
+	(14), 
+	(15);
 
 
 
@@ -551,3 +583,5 @@ SELECT answer_question(1, 3, 1);
 SELECT answer_question(3, 4, 2);
 
 SELECT answer_question(7, 2, 5);
+
+SELECT decomp();

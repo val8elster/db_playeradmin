@@ -323,7 +323,7 @@ BEGIN
 		qPoints := (SELECT points FROM questions WHERE questionId = question);
 
 		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
-		UPDATE teams SET points = (prevTpoints + qPoints) WHERE teamId = team;
+		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
 	ELSE
 		correct := B'1';
 		-- false

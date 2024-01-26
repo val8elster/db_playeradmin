@@ -41,7 +41,7 @@ CREATE TABLE questions (
     answer4 VARCHAR(40) NOT NULL,
     rightAnswer INT CHECK (rightAnswer IN (1,2,3,4)),
     qname VARCHAR(50) NOT NULL,
-    points INT NOT NULL,
+    points INT DEFAULT 10,
     UNIQUE(qname, questionId)
 );
 
@@ -136,6 +136,19 @@ BEGIN
         WHERE s.active = B'1'
           AND g.active = B'1'
     );
+	PERFORM calculate_points();
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION calculate_points()
+RETURNS VOID AS $$
+BEGIN 
+	UPDATE questions q
+	SET points = sq.difficulty * 10
+	FROM statisticsQuestions sq
+	WHERE q.questionId = sq.questionId;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -161,7 +174,6 @@ BEGIN
     WHERE teamId IS NOT NULL;
 
 	PERFORM update_stats();
-	PERFORM calculate_points();
 END;
 $$ LANGUAGE plpgsql;
 
@@ -188,17 +200,6 @@ BEGIN
 		placement = rp.placement
 	FROM RankedPlayers rp
 	WHERE sp.playerId = rp.playerId;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION calculate_points()
-RETURNS VOID AS $$
-BEGIN 
-	UPDATE questions q
-	SET points = sq.difficulty * 10
-	FROM statisticsQuestions sq
-	WHERE q.questionId = sq.questionId;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -558,17 +559,17 @@ LIMIT 4;
 
 
 
-INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer, points)
+INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer)
 VALUES
-    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1, 30),
-    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1, 20),
-    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4, 50),
-    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2, 10),
-    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3, 10),
-    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2, 10),
-    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3, 10),
-    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4, 10),
-	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4, 1);
+    (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1),
+    (2, 'was ist Schnee','wasser','blut','Himbeersaft','Cola',1),
+    (3, 'welche farbe hat die Milch?', 'blau', 'gelb', 'pink', 'weiß', 4),
+    (4, 'was ist ein Baum ', 'wasser', 'Pflanze', 'Himbeersaft', 'Cola', 2),
+    (5, 'welche farbe hat der Mars?', 'schwarz', 'Schokolade', 'orange', 'grün', 3),
+    (6, 'was ist eis','wasser', 'lecker', 'Himbeersaft', 'Cola', 2),
+    (7, 'welche farbe hat das wasser?', 'blau', 'kalt', 'Loch Ness', 'grün', 3),
+    (8, 'was ist eine Katze', 'wasser', 'Tier', 'Himbeersaft', 'Süß', 4),
+	(9, 'ist der himmel blau?' , 'blubb', 'A', 'miau', 'ich bin farbenblind', 4);
 
 
 

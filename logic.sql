@@ -1,3 +1,4 @@
+--init function: initializes session, games and updates partOf, calls the points-by-difficulty check
 CREATE OR REPLACE FUNCTION initialize()
     RETURNS VOID AS $$
 DECLARE
@@ -35,6 +36,7 @@ $$ LANGUAGE plpgsql;
 
 
 
+--points-by-difficulty check, called in initialize()
 CREATE OR REPLACE FUNCTION calculate_points()
 RETURNS VOID AS $$
 BEGIN 
@@ -47,6 +49,7 @@ $$ LANGUAGE plpgsql;
 
 
 
+--end function, sets sessions, games and teams to passive, calls the statistic update which happens after every session
 CREATE OR REPLACE FUNCTION decomp()
 RETURNS VOID AS $$
 BEGIN
@@ -71,6 +74,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
+--statistic update, called in decomp()
 CREATE OR REPLACE FUNCTION update_stats()
 RETURNS VOID AS $$
 DECLARE 
@@ -98,6 +103,7 @@ $$ LANGUAGE plpgsql;
 
 
 
+--updates plays for the teamleaders since they are added through the creation of the teams
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
     RETURNS TRIGGER AS $$
 DECLARE
@@ -123,7 +129,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
+--trigger: calls the teamleader-adding function
 CREATE TRIGGER tteamleader
     AFTER INSERT ON teams
     FOR EACH ROW
@@ -131,6 +137,9 @@ EXECUTE FUNCTION add_team_leader_to_plays();
 
 
 
+--adds a question to a game and then diesplays it as a notice
+--@Maria: is there a way to make sure the same game is not called constantly? like delivering the gameId as a parameter? because that would work with the nonexistant java file.
+--@Maria: possibly assign with order by gesamtantworten asc limit 5 to find the least answered questions
 CREATE OR REPLACE FUNCTION start_game()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -164,13 +173,17 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE TRIGGER firstquestion
+--trigger that starts the game ? for each question.
+--@Maria: possibly: you do not need to find the gameId externally, it is saved in the table already. and possibly also modify the function as such, that it doesnt refer to the FIRST question.
+--@Maria: also possibly clause: where question is not answered and game is active?
+CREATE TRIGGER tfirstquestion
     AFTER INSERT ON features
     FOR EACH ROW
 EXECUTE FUNCTION start_game();
 
 
 
+--@Maria: do you still need this? all the questions are being called by the above function? cause the trigger adresses every line?
 CREATE OR REPLACE FUNCTION assign_next_question()
 	RETURNS TRIGGER AS $$
 DECLARE
@@ -194,6 +207,7 @@ $$ LANGUAGE plpgsql;
 
 
 
+--@Maria: again, do we need this?
 CREATE TRIGGER nextquestion
 	AFTER INSERT ON features
 	FOR EACH ROW
@@ -201,6 +215,7 @@ EXECUTE FUNCTION assign_next_question();
 
 
 
+--@Maria: once more, do we need this? i dont think so. arent we supposed to do that maually because no java, like with the players?
 CREATE OR REPLACE FUNCTION assign_questions_batch()
     RETURNS TRIGGER AS $$
 DECLARE
@@ -224,6 +239,8 @@ END
 $$ LANGUAGE plpgsql;
 
 
+
+--@Maria: see corresponding function
 CREATE TRIGGER assignquestion
     AFTER INSERT ON features
     FOR EACH ROW
@@ -231,6 +248,8 @@ EXECUTE PROCEDURE assign_questions_batch();
 
 
 
+--delivers an answer to a question, check, if it is correct and then points. 
+--@Val: need to check, if valid. possibly link to the assigning trigger.
 CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
 RETURNS VOID AS $$
 DECLARE
@@ -273,7 +292,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- falsch: 0-20%: 1, 30-40%: 2, 50-60%: 3, 70-80%: 4, 90-100%: 5
+-- checks difficulty of questions by calculating it of the given answers. 
+-- wrong:difficulty: 0-20%: 1, 30-40%: 2, 50-60%: 3, 70-80%: 4, 90-100%: 5
 CREATE OR REPLACE FUNCTION check_difficulty(question_row INT)
 RETURNS VOID AS $$
 DECLARE
@@ -309,7 +329,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
+--creates statistics for questions through right and wrong answers. through trigger
 CREATE OR REPLACE FUNCTION create_statistic_for_question()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -347,6 +367,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+
+--triggers update of statistics if a question is answered. 
+--@Val: also possibly clause if it is in the game. have to check that before inputting in answered.
 CREATE TRIGGER tqueststat
 AFTER INSERT ON answered
 FOR EACH STATEMENT

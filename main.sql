@@ -166,9 +166,13 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION update_stats()
-RETURNS VOID AS $$
+RETURNS VOID AS $$ 
 BEGIN 
-	
+	DELETE * FROM statisticsPlayer;
+
+	INSERT INTO statisticsPlayer
+	SELECT * FROM players 
+	ORDER BY points;
 END;
 $$ LANGUAGE plpgsql;
 

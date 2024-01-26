@@ -98,6 +98,31 @@ BEGIN
 		placement = rp.placement
 	FROM RankedPlayers rp
 	WHERE sp.playerId = rp.playerId;
+
+    FOR pl : statisticsPlayer
+    LOOP
+        PERFORM calculate_proficiency(pl.playerId)
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+--calculates proficiency from all answered questions
+CREATE OR REPLACE FUNCTION calculate_proficiency(player INT)
+RETURNS VOID AS $$
+DECLARE
+    sum INT;
+BEGIN 
+sum := ((((SELECT difficulty1Answered FROM statisticsPlayer WHERE playerId = player) * 1) + 
+            ((SELECT difficulty2Answered FROM statisticsPlayer WHERE playerId = player) * 4) + 
+            ((SELECT difficulty3Answered FROM statisticsPlayer WHERE playerId = player) * 9) + 
+            ((SELECT difficulty4Answered FROM statisticsPlayer WHERE playerId = player) * 16) + 
+            ((SELECT difficulty5Answered FROM statisticsPlayer WHERE playerId = player) * 25))/10);
+
+    UPDATE statisticsPlayer 
+    SET proficiency = sum
+    WHERE playerId = player;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -251,8 +276,21 @@ EXECUTE PROCEDURE assign_questions_batch();
 --function that assigns the correct difficulty values in the player statistic
 CREATE OR REPLACE FUNCTION add_difficulty_answer(question INT, player INT)
 RETURNS VOID AS $$
+DECLARE 
+    diff INT;
 BEGIN 
-
+    diff := (SELECT difficulty 
+            FROM statisticsQuestions
+            WHERE questionID = question);
+			
+    UPDATE statisticsPlayer
+    SET 
+        difficulty1Answered = difficulty1Answered + CASE WHEN diff = 1 THEN 1 ELSE 0 END,
+        difficulty2Answered = difficulty2Answered + CASE WHEN diff = 2 THEN 1 ELSE 0 END,
+        difficulty3Answered = difficulty3Answered + CASE WHEN diff = 3 THEN 1 ELSE 0 END,
+        difficulty4Answered = difficulty4Answered + CASE WHEN diff = 4 THEN 1 ELSE 0 END,
+        difficulty5Answered = difficulty5Answered + CASE WHEN diff = 5 THEN 1 ELSE 0 END
+    WHERE playerId = player;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -289,8 +327,8 @@ BEGIN
 		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
 
 		UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
-        
-        SELECT add_difficulty_answer(question, player);
+
+        PERFORM add_difficulty_answer(question, player);
 	ELSE
 		correct := B'1';
 		-- false

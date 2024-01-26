@@ -320,7 +320,7 @@ BEGIN
 
 		prevPPoints := (SELECT points FROM players WHERE playerId = player);
 		prevTPoints := (SELECT points FROM teams WHERE teamId = team);
-		qPoints := (SELECT poins FROM questions WHERE question_id = question);
+		qPoints := (SELECT points FROM questions WHERE question_id = question);
 
 		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
 		UPDATE teams SET points = (prevTpoints - qPoints) WHERE teamId = team;

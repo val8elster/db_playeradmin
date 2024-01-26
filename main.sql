@@ -161,6 +161,7 @@ BEGIN
     WHERE teamId IS NOT NULL;
 
 	PERFORM update_stats();
+	PERFORM calculate_points();
 END;
 $$ LANGUAGE plpgsql;
 
@@ -189,6 +190,14 @@ BEGIN
 	WHERE sp.playerId = rp.playerId;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION calculate_points()
+RETURNS VOID AS $$
+BEGIN 
+	
+END;
+$$ LANGUAGE plpgsql
 
 
 

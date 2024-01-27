@@ -126,24 +126,6 @@ SELECT add_questions_to_session(1, 2, 3, 4, 7);
 
 
 
--- question, answer, player
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 1, 1);
-SELECT answer_question(1, 3, 1);
-SELECT answer_question(1, 2, 1);
-SELECT answer_question(1, 3, 1);
-
-SELECT answer_question(3, 4, 2);
-
-SELECT answer_question(7, 2, 5);
-
-SELECT decomp();
-
 SELECT change_playername(1, 'New1');
 SELECT change_teamname(1, 1, '1stTeamBestTeam');
 SELECT change_teamname(1, 2, 'wrongShit');

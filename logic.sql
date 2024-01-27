@@ -310,14 +310,18 @@ CREATE OR REPLACE FUNCTION add_questions_to_session(quest1 INT, quest2 INT, ques
 RETURNS VOID AS $$
 DECLARE
     game INT;
+	i INT;
 BEGIN
     game := (SELECT MIN(gameId) FROM games WHERE active = B'1');
 
-    IF (quest1 != quest2 != quest3 != quest4 != quest5)
+    IF (quest1 <> quest2 AND quest1 <> quest3 AND quest1 <> quest4 AND quest1 <> quest5
+	   AND quest2 <> quest3 AND quest2 <> quest4 AND quest2 <> quest5
+	   AND quest3 <> quest4 AND quest3 <> quest5
+	   AND quest4 <> quest5)
     THEN
-        IF ((SELECT MAX(questionId) FROM questions) >= MAX(quest1, quest2, quest3, quest4, quest5))
+        IF ((SELECT MAX(questionId) FROM questions) >= GREATEST(quest1, quest2, quest3, quest4, quest5))
         THEN
-            FOR game in 0..2
+            FOR i in 0..2
             LOOP
                 IF((SELECT COUNT(questionId) FROM features WHERE gameId = game) = 0)
                 THEN
@@ -327,10 +331,9 @@ BEGIN
                         (quest2, game),
                         (quest3, game),
                         (quest4, game),
-                        (quest5, game)
-
-                    game = game + 1;
+                        (quest5, game);
                 END IF;
+                game := game + 1;
             END LOOP;
         END IF;
     END IF;

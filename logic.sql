@@ -252,16 +252,19 @@ BEGIN
 
     firstQuestion := (SELECT MIN(questionId) FROM features WHERE gameId = game AND called = B'0');
 
-    UPDATE features
-    SET called = B'1'
-    WHERE questionId = firstQuestion;
+    IF question IS NOT NULL
+    THEN
+        UPDATE features
+        SET called = B'1'
+        WHERE questionId = firstQuestion;
 
-    RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
-    RAISE NOTICE 'Answers: %', firstQuestion;
-    RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
-    RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = firstQuestion);
-    RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = firstQuestion);
-    RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
+        RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
+        RAISE NOTICE 'Answers: %', firstQuestion;
+        RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
+        RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = firstQuestion);
+        RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = firstQuestion);
+        RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -328,39 +331,42 @@ DECLARE
 	prevTpoints INT;
 	qPoints INT;
 BEGIN
-	IF(
-		(SELECT rightAnswer
-		FROM questions
-		WHERE (questionId = question))
-		= answer
-	)
-	THEN
-		correct := B'1';
-		-- true
+    IF((SELECT MAX(questionId) FROM features WHERE called = B'1') = question)
+    THEN
+        IF(
+            (SELECT rightAnswer
+            FROM questions
+            WHERE (questionId = question))
+            = answer
+        )
+        THEN
+            correct := B'1';
+            -- true
 
-		team := (SELECT teamId FROM plays WHERE playerId = player);
+            team := (SELECT teamId FROM plays WHERE playerId = player);
 
-		prevPPoints := (SELECT points FROM players WHERE playerId = player);
-		prevTPoints := (SELECT points FROM teams WHERE teamId = team);
-		qPoints := (SELECT points FROM questions WHERE questionId = question);
+            prevPPoints := (SELECT points FROM players WHERE playerId = player);
+            prevTPoints := (SELECT points FROM teams WHERE teamId = team);
+            qPoints := (SELECT points FROM questions WHERE questionId = question);
 
-		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
-		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
+            UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
+            UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
 
-		UPDATE statisticsPlayer SET points = (points + qPoints) WHERE playerId = player;
-        UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
-		
-		PERFORM add_difficulty_answer(question, player);
-        PERFORM followUp();
-	ELSE
-		correct := B'0';
-		-- false
+            UPDATE statisticsPlayer SET points = (points + qPoints) WHERE playerId = player;
+            UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
+            
+            PERFORM add_difficulty_answer(question, player);
+            PERFORM followUp();
+        ELSE
+            correct := B'0';
+            -- false
 
-		UPDATE statisticsPlayer SET questionRatio = (questionRatio - 1) WHERE playerId = player;
-	END IF;
+            UPDATE statisticsPlayer SET questionRatio = (questionRatio - 1) WHERE playerId = player;
+        END IF;
 
-	INSERT INTO answered (playerId, questionId, isCorrect, added)
-	VALUES (player, question, correct, B'0');
+        INSERT INTO answered (playerId, questionId, isCorrect, added)
+        VALUES (player, question, correct, B'0');
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 

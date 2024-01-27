@@ -335,7 +335,7 @@ BEGIN
 		= answer
 	)
 	THEN
-		correct := B'0';
+		correct := B'1';
 		-- true
 
 		team := (SELECT teamId FROM plays WHERE playerId = player);
@@ -353,14 +353,14 @@ BEGIN
 		PERFORM add_difficulty_answer(question, player);
         PERFORM followUp();
 	ELSE
-		correct := B'1';
+		correct := B'0';
 		-- false
 
 		UPDATE statisticsPlayer SET questionRatio = (questionRatio - 1) WHERE playerId = player;
 	END IF;
 
 	INSERT INTO answered (playerId, questionId, isCorrect, added)
-	VALUES (player, question, correct, B'1');
+	VALUES (player, question, correct, B'0');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -418,7 +418,7 @@ BEGIN
 	ORDER BY nom DESC
 	LIMIT 1;
 
-    IF (SELECT isCorrect FROM answered WHERE nom = col) = B'0'
+    IF (SELECT isCorrect FROM answered WHERE nom = col) = B'1'
 	THEN
         UPDATE statisticsQuestions
         SET rightAnswers = rightAnswers + 1
@@ -430,8 +430,8 @@ BEGIN
     END IF;
 
 	UPDATE answered
-	SET added = B'0'
-	WHERE added = B'1';
+	SET added = B'1'
+	WHERE added = B'0';
 
 	PERFORM check_difficulty(col);
 

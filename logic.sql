@@ -100,6 +100,14 @@ BEGIN
     SET active = B'0'
     WHERE active = B'1';
 
+    UPDATE players ply
+    SET ron = ron + 1
+    WHERE EXISTS (
+        SELECT teamId
+        FROM plays p
+        WHERE p.playerId = ply.playerId;
+    )
+
     UPDATE plays
     SET teamId = NULL, gameId = NULL
     WHERE teamId IS NOT NULL;

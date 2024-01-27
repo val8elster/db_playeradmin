@@ -1,7 +1,8 @@
 CREATE TABLE players (
     playerId SERIAL PRIMARY KEY,
     name VARCHAR(20) UNIQUE,
-    points INT DEFAULT 0
+    points INT DEFAULT 0,
+    ron INT DEFAULT 0
 );
 
 

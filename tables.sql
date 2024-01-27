@@ -1,5 +1,3 @@
-CREATE SCHEMA public;
-
 CREATE TABLE players (
     playerId SERIAL PRIMARY KEY,
     name VARCHAR(20) UNIQUE,

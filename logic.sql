@@ -342,6 +342,27 @@ $$ LANGUAGE plpgsql;
 
 
 
+CREATE OR REPLACE FUNCTION first_question()
+RETURNS VOID AS $$
+DECLARE 
+    game INT;
+    firstQuestion INT;
+BEGIN 
+    game := (SELECT MIN(gameId) FROM games WHERE active = B'1');
+
+    firstQuestion := (SELECT MIN(questionId) FROM features WHERE gameId = game);
+
+    RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
+    RAISE NOTICE 'Answers:';
+    RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
+    RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = firstQuestion);
+    RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = firstQuestion);
+    RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION add_difficulty_answer(question INT, player INT)
 RETURNS VOID AS $$
 DECLARE 

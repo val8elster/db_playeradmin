@@ -122,7 +122,7 @@ VALUES
 
 
 
-PERFORM add_questions_to_session(1, 2, 3, 4, 7);
+SELECT add_questions_to_session(1, 2, 3, 4, 7);
 
 
 

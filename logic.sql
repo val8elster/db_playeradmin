@@ -206,103 +206,103 @@ EXECUTE FUNCTION add_team_leader_to_plays();
 
 
 
-CREATE OR REPLACE FUNCTION start_game()
-RETURNS TRIGGER AS $$
-DECLARE
-    game_id INT;
-    firstquestionID INT;
-    firstquestionIDname VARCHAR(50);
-BEGIN
-    SELECT gameId INTO game_id
-    FROM games
-    WHERE active = B'1'
-    LIMIT 1;
+-- CREATE OR REPLACE FUNCTION start_game()
+-- RETURNS TRIGGER AS $$
+-- DECLARE
+--     game_id INT;
+--     firstquestionID INT;
+--     firstquestionIDname VARCHAR(50);
+-- BEGIN
+--     SELECT gameId INTO game_id
+--     FROM games
+--     WHERE active = B'1'
+--     LIMIT 1;
 
-    INSERT INTO features(gameId,questionId, qname )
-    SELECT game_id, questionId, qname
-    FROM questions
-    WHERE questionId NOT IN (SELECT questionId FROM features WHERE gameId=game_id)
-    ORDER BY RANDOM()
-    LIMIT 1
-    RETURNING questionId, qname INTO firstquestionID, firstquestionIDname;
-
-
-    RAISE NOTICE 'Die erste Frage lautet: %', firstquestionIDname;
-    RAISE NOTICE 'Antwortmöglichkeiten:';
-    RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = firstquestionid);
-    RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
-    RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
-    RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
-    PERFORM assign_questions_batch();
-END
-$$ LANGUAGE plpgsql;
+--     INSERT INTO features(gameId,questionId, qname )
+--     SELECT game_id, questionId, qname
+--     FROM questions
+--     WHERE questionId NOT IN (SELECT questionId FROM features WHERE gameId=game_id)
+--     ORDER BY RANDOM()
+--     LIMIT 1
+--     RETURNING questionId, qname INTO firstquestionID, firstquestionIDname;
 
 
-
-CREATE TRIGGER firstquestion
-    AFTER INSERT ON features
-    FOR EACH ROW
-EXECUTE FUNCTION start_game();
+--     RAISE NOTICE 'Die erste Frage lautet: %', firstquestionIDname;
+--     RAISE NOTICE 'Antwortmöglichkeiten:';
+--     RAISE NOTICE '1. %', (SELECT answer1 FROM questions WHERE questionId = firstquestionid);
+--     RAISE NOTICE '2. %', (SELECT answer2 FROM questions WHERE questionId = firstquestionid);
+--     RAISE NOTICE '3. %', (SELECT answer3 FROM questions WHERE questionId = firstquestionid);
+--     RAISE NOTICE '4. %', (SELECT answer4 FROM questions WHERE questionId = firstquestionid);
+--     PERFORM assign_questions_batch();
+-- END
+-- $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION assign_next_question()
-	RETURNS TRIGGER AS $$
-DECLARE
-	question_record RECORD;
-BEGIN
-
-	SELECT questionId, qname
-	INTO question_record
-	FROM questions
-	WHERE questionId NOT IN (SELECT questionId FROM features WHERE features.gameId = NEW.gameId)
-	ORDER BY RANDOM()
-	LIMIT 1;
-
-
-	INSERT INTO features(gameId, questionId, qname)
-	VALUES (NEW.gameId, question_record.questionId, question_record.qname);
-
-	RETURN NEW;
-END
-$$ LANGUAGE plpgsql;
+-- CREATE TRIGGER firstquestion
+--     AFTER INSERT ON features
+--     FOR EACH ROW
+-- EXECUTE FUNCTION start_game();
 
 
 
-CREATE TRIGGER nextquestion
-	AFTER INSERT ON features
-	FOR EACH ROW
-EXECUTE FUNCTION assign_next_question();
+-- CREATE OR REPLACE FUNCTION assign_next_question()
+-- 	RETURNS TRIGGER AS $$
+-- DECLARE
+-- 	question_record RECORD;
+-- BEGIN
+
+-- 	SELECT questionId, qname
+-- 	INTO question_record
+-- 	FROM questions
+-- 	WHERE questionId NOT IN (SELECT questionId FROM features WHERE features.gameId = NEW.gameId)
+-- 	ORDER BY RANDOM()
+-- 	LIMIT 1;
+
+
+-- 	INSERT INTO features(gameId, questionId, qname)
+-- 	VALUES (NEW.gameId, question_record.questionId, question_record.qname);
+
+-- 	RETURN NEW;
+-- END
+-- $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION assign_questions_batch()
-    RETURNS TRIGGER AS $$
-DECLARE
-    question_record RECORD;
-    question_cursor CURSOR FOR
-        SELECT questionId, qname
-        FROM questions
-        WHERE questionId NOT IN (SELECT questionId FROM features WHERE NEW.gameId = features.gameId)
-        ORDER BY RANDOM()
-        LIMIT 5;
-BEGIN
-    OPEN question_cursor;
-    FOR question_record IN question_cursor
-        LOOP
-            INSERT INTO features(gameId, questionId, qname)
-            VALUES (NEW.gameId, question_record.questionId, question_record.qname);
-        END LOOP;
-    CLOSE question_cursor;
-    RETURN NEW;
-END
-$$ LANGUAGE plpgsql;
+-- CREATE TRIGGER nextquestion
+-- 	AFTER INSERT ON features
+-- 	FOR EACH ROW
+-- EXECUTE FUNCTION assign_next_question();
 
 
-CREATE TRIGGER assignquestion
-    AFTER INSERT ON features
-    FOR EACH ROW
-EXECUTE PROCEDURE assign_questions_batch();
+
+-- CREATE OR REPLACE FUNCTION assign_questions_batch()
+--     RETURNS TRIGGER AS $$
+-- DECLARE
+--     question_record RECORD;
+--     question_cursor CURSOR FOR
+--         SELECT questionId, qname
+--         FROM questions
+--         WHERE questionId NOT IN (SELECT questionId FROM features WHERE NEW.gameId = features.gameId)
+--         ORDER BY RANDOM()
+--         LIMIT 5;
+-- BEGIN
+--     OPEN question_cursor;
+--     FOR question_record IN question_cursor
+--         LOOP
+--             INSERT INTO features(gameId, questionId, qname)
+--             VALUES (NEW.gameId, question_record.questionId, question_record.qname);
+--         END LOOP;
+--     CLOSE question_cursor;
+--     RETURN NEW;
+-- END
+-- $$ LANGUAGE plpgsql;
+
+
+-- CREATE TRIGGER assignquestion
+--     AFTER INSERT ON features
+--     FOR EACH ROW
+-- EXECUTE PROCEDURE assign_questions_batch();
 
 
 
@@ -311,7 +311,7 @@ RETURNS VOID AS $$
 DECLARE
     game INT;
 BEGIN
-    game := SELECT MIN(gameId) FROM games WHERE active = B'1';
+    game := (SELECT MIN(gameId) FROM games WHERE active = B'1');
 
     IF (quest1 != quest2 != quest3 != quest4 != quest5)
     THEN

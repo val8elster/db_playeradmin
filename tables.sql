@@ -79,9 +79,8 @@ CREATE TABLE partOf (
 CREATE TABLE features (
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
-    qname VARCHAR(50),
     PRIMARY KEY(gameId, questionId),
-    FOREIGN KEY(questionId, qname) REFERENCES questions(questionId, qname)
+    FOREIGN KEY(questionId) REFERENCES questions(questionId)
 );
 
 

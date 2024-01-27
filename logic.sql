@@ -350,16 +350,64 @@ DECLARE
 BEGIN 
     game := (SELECT MIN(gameId) FROM games WHERE active = B'1');
 
-    firstQuestion := (SELECT MIN(questionId) FROM features WHERE gameId = game);
+    firstQuestion := (SELECT MIN(questionId) FROM features WHERE gameId = game AND called = B'0');
 
     RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
-    RAISE NOTICE 'Answers:';
+    RAISE NOTICE 'Answers: %', firstQuestion;
     RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
+
+    UPDATE features
+    SET called = B'1'
+    WHERE questionId = firstQuestion;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION followUp()
+RETURNS VOID AS $$
+DECLARE
+    game INT;
+    question INT;
+BEGIN
+    game := (SELECT MIN(gameId) FROM games WHERE active = B'1');
+    question := (SELECT MIN(questionId) FROM features WHERE gameId = game AND called = B'0');
+
+    RAISE NOTICE 'Question: %', (SELECT qname FROM questions WHERE questionId = question);
+    RAISE NOTICE 'Answers:, %', question;
+    RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = question);
+    RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = question);
+    RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = question);
+    RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = question);
+
+    UPDATE features
+    SET called = B'1'
+    WHERE questionId = question;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION check_correct()
+RETURNS TRIGGER AS $$
+BEGIN 
+    IF(NEW.isCorrect = B'0')
+    THEN
+        PERFORM followUp();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE TRIGGER tnextquestion
+    BEFORE INSERT ON answered
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION check_correct();
 
 
 

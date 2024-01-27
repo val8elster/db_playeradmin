@@ -77,6 +77,7 @@ CREATE TABLE partOf (
 CREATE TABLE features (
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     questionId INT REFERENCES questions(questionId) ON DELETE SET NULL,
+    called BIT DEFAULT B'0',
     PRIMARY KEY(gameId, questionId),
     FOREIGN KEY(questionId) REFERENCES questions(questionId)
 );

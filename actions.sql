@@ -122,6 +122,10 @@ VALUES
 
 
 
+PERFORM add_questions_to_session(1, 2, 3, 4, 7);
+
+
+
 -- question, answer, player
 SELECT answer_question(1, 1, 1);
 SELECT answer_question(1, 1, 1);

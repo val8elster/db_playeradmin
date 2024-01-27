@@ -352,16 +352,16 @@ BEGIN
 
     firstQuestion := (SELECT MIN(questionId) FROM features WHERE gameId = game AND called = B'0');
 
+    UPDATE features
+    SET called = B'1'
+    WHERE questionId = firstQuestion;
+
     RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'Answers: %', firstQuestion;
     RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = firstQuestion);
     RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
-
-    UPDATE features
-    SET called = B'1'
-    WHERE questionId = firstQuestion;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -373,21 +373,26 @@ DECLARE
     game INT;
     question INT;
 BEGIN
-    game := (SELECT MIN(gameId) FROM games WHERE active = B'1');
-    question := (SELECT MIN(questionId) FROM features WHERE gameId = game AND called = B'0');
+    SELECT MIN(gameId) INTO game FROM features WHERE called = B'0';
+    SELECT MIN(questionId) INTO question FROM features WHERE gameId = game AND called = B'0';
 
-    RAISE NOTICE 'Question: %', (SELECT qname FROM questions WHERE questionId = question);
-    RAISE NOTICE 'Answers:, %', question;
-    RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = question);
-    RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = question);
-    RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = question);
-    RAISE NOTICE 'D: %', (SELECT answer1 FROM questions WHERE questionId = question);
+    IF question IS NOT NULL THEN
+        UPDATE features
+        SET called = B'1'
+        WHERE questionId = question;
 
-    UPDATE features
-    SET called = B'1'
-    WHERE questionId = question;
+        RAISE NOTICE 'Question: %', (SELECT qname FROM questions WHERE questionId = question);
+        RAISE NOTICE 'Answers: %', question;
+        RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = question);
+        RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = question);
+        RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = question);
+        RAISE NOTICE 'D: %', (SELECT answer4 FROM questions WHERE questionId = question);
+    ELSE
+        RAISE NOTICE 'No unanswered questions found for the current game.';
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 

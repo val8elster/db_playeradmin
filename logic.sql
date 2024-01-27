@@ -113,17 +113,16 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_stats()
 RETURNS VOID AS $$
 DECLARE 
-	pl INT;
+    pl INT;
 BEGIN 
 	WITH RankedPlayers AS (
 		SELECT
 			sp.playerId,
-			p.points,
+			sp.points,
 			sp.questionRatio,
-			ROW_NUMBER() OVER (ORDER BY p.points DESC, sp.questionRatio DESC, sp.playerId) AS placement
+			ROW_NUMBER() OVER (ORDER BY sp.points DESC, sp.questionRatio DESC, sp.playerId) AS placement
 		FROM
 			statisticsPlayer sp
-		JOIN players p ON sp.playerId = p.playerId
 	)
 	
 	UPDATE statisticsPlayer sp
@@ -134,7 +133,7 @@ BEGIN
 	FROM RankedPlayers rp
 	WHERE sp.playerId = rp.playerId;
 
-    FOR pl IN SELECT playerId FROM statisticsPlayer
+    FOR pl IN (SELECT playerId FROM statisticsPlayer)
     LOOP
         PERFORM calculate_proficiency(pl);
     END LOOP;
@@ -447,7 +446,8 @@ BEGIN
 		UPDATE players SET points = (prevPPoints + qPoints) WHERE playerId = player;
 		UPDATE teams SET points = (prevTPoints + qPoints) WHERE teamId = team;
 
-		UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
+		UPDATE statisticsPlayer SET points = (points + qPoints) WHERE playerId = player;
+        UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
 		
 		PERFORM add_difficulty_answer(question, player);
         PERFORM followUp();

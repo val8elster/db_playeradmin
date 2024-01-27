@@ -389,30 +389,11 @@ BEGIN
         RAISE NOTICE 'D: %', (SELECT answer4 FROM questions WHERE questionId = question);
     ELSE
         RAISE NOTICE 'No unanswered questions found for the current game.';
+        RAISE NOTICE 'Game is finished.';
+        PERFORM decomp();
     END IF;
 END;
 $$ LANGUAGE plpgsql;
-
-
-
-
-CREATE OR REPLACE FUNCTION check_correct()
-RETURNS TRIGGER AS $$
-BEGIN 
-    IF(NEW.isCorrect = B'0')
-    THEN
-        PERFORM followUp();
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
-CREATE OR REPLACE TRIGGER tnextquestion
-    BEFORE INSERT ON answered
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION check_correct();
 
 
 
@@ -469,6 +450,7 @@ BEGIN
 		UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
 		
 		PERFORM add_difficulty_answer(question, player);
+        PERFORM followUp();
 	ELSE
 		correct := B'1';
 		-- false

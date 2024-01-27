@@ -306,6 +306,39 @@ EXECUTE PROCEDURE assign_questions_batch();
 
 
 
+CREATE OR REPLACE FUNCTION add_questions_to_session(quest1 INT, quest2 INT, quest3 INT, quest4 INT, quest5 INT)
+RETURNS VOID AS $$
+DECLARE
+    game INT;
+BEGIN
+    game := SELECT MIN(gameId) FROM games WHERE active = B'1';
+
+    IF (quest1 != quest2 != quest3 != quest4 != quest5)
+    THEN
+        IF ((SELECT MAX(questionId) FROM questions) >= MAX(quest1, quest2, quest3, quest4, quest5))
+        THEN
+            FOR game in 0..2
+            LOOP
+                IF((SELECT COUNT(questionId) FROM features WHERE gameId = game) = 0)
+                THEN
+                    INSERT INTO features (questionId, gameId)
+                    VALUES
+                        (quest1, game),
+                        (quest2, game),
+                        (quest3, game),
+                        (quest4, game),
+                        (quest5, game)
+
+                    game = game + 1;
+                END IF;
+            END LOOP;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION add_difficulty_answer(question INT, player INT)
 RETURNS VOID AS $$
 DECLARE 

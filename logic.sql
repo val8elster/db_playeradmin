@@ -288,6 +288,7 @@ BEGIN
         WHERE questionId = firstQuestion
         AND gameId = game;
 
+        RAISE NOTICE 'Game: %', game;
         RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
         RAISE NOTICE 'ID: %', firstQuestion;
         RAISE NOTICE 'Answers:';
@@ -316,6 +317,7 @@ BEGIN
         WHERE questionId = question
         AND gameID = game;
 
+        RAISE NOTICE 'Game: %', game;
         RAISE NOTICE 'Question: %', (SELECT qname FROM questions WHERE questionId = question);
         RAISE NOTICE 'ID: %', question;
 		RAISE NOTICE 'Answers:';
@@ -330,6 +332,30 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION show_previous()
+RETURNS VOID AS $$
+DECLARE
+    question INT;
+    game INT;
+BEGIN 
+    question :=  (SELECT MAX(questionId) FROM features WHERE called = B'1');
+    game := (SELECT MAX(gameId) FROM features WHERE questionId = question AND called = B'1');
+
+    RAISE NOTICE 'Wrong answer!';
+    RAISE NOTICE 'Game: %', game;
+    RAISE NOTICE 'Question: %', (SELECT qname FROM questions WHERE questionId = question);
+    RAISE NOTICE 'ID: %', question;
+	RAISE NOTICE 'Answers:';
+    RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = question);
+    RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = question);
+    RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = question);
+    RAISE NOTICE 'D: %', (SELECT answer4 FROM questions WHERE questionId = question);
+END;
+$$ LANGUAGE plpgsql;
+
 
 
 
@@ -395,6 +421,7 @@ BEGIN
             -- false
 
             UPDATE statisticsPlayer SET questionRatio = (questionRatio - 1) WHERE playerId = player;
+            PERFORM show_previous();
         END IF;
 
         INSERT INTO answered (playerId, questionId, isCorrect, added)

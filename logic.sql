@@ -85,6 +85,36 @@ $$ LANGUAGE plpgsql;
 
 
 
+CREATE OR REPLACE FUNCTION check_complete_teams()
+RETURNS VOID AS $$
+DECLARE 
+    game INT;
+    session INT;
+BEGIN 
+    session := (SELECT sessionId FROM sessions WHERE active = B'1');
+    game := (SELECT MIN(gameId) FROM partOf WHERE sessionId = session);
+
+    FOR i IN game..(game + 2)
+    LOOP
+        IF((SELECT COUNT(playerId) FROM plays WHERE gameId = game) < (3 * (SELECT maxPinT FROM sessions WHERE sessionId = session)))
+        THEN
+            UPDATE plays
+            SET teamId = NULL
+            WHERE gameId = game;
+			UPDATE plays
+            SET gameId = NULL
+            WHERE gameId = game;
+            RAISE NOTICE 'Game % was terminated due to an insufficient amount of players.', game;
+        ELSE
+            RAISE NOTICE 'Game % is initialized and will begin shortly.', game;
+        END IF;
+		game := game + 1;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 CREATE OR REPLACE FUNCTION decomp()
 RETURNS VOID AS $$
 BEGIN
@@ -190,7 +220,6 @@ BEGIN
             SET gameId = game_session.gameId
             FROM players
             WHERE teamId = NEW.teamId;
-
         END LOOP;
     RETURN NEW;
 END;
@@ -252,14 +281,16 @@ BEGIN
 
     firstQuestion := (SELECT MIN(questionId) FROM features WHERE gameId = game AND called = B'0');
 
-    IF question IS NOT NULL
+    IF firstQuestion IS NOT NULL
     THEN
         UPDATE features
         SET called = B'1'
-        WHERE questionId = firstQuestion;
+        WHERE questionId = firstQuestion
+        AND gameId = game;
 
         RAISE NOTICE 'First Question: %', (SELECT qname FROM questions WHERE questionId = firstQuestion);
-        RAISE NOTICE 'Answers: %', firstQuestion;
+        RAISE NOTICE 'ID: %', firstQuestion;
+        RAISE NOTICE 'Answers:';
         RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = firstQuestion);
         RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = firstQuestion);
         RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = firstQuestion);
@@ -282,17 +313,19 @@ BEGIN
     IF question IS NOT NULL THEN
         UPDATE features
         SET called = B'1'
-        WHERE questionId = question;
+        WHERE questionId = question
+        AND gameID = game;
 
         RAISE NOTICE 'Question: %', (SELECT qname FROM questions WHERE questionId = question);
-        RAISE NOTICE 'Answers: %', question;
+        RAISE NOTICE 'ID: %', question;
+		RAISE NOTICE 'Answers:';
         RAISE NOTICE 'A: %', (SELECT answer1 FROM questions WHERE questionId = question);
         RAISE NOTICE 'B: %', (SELECT answer2 FROM questions WHERE questionId = question);
         RAISE NOTICE 'C: %', (SELECT answer3 FROM questions WHERE questionId = question);
         RAISE NOTICE 'D: %', (SELECT answer4 FROM questions WHERE questionId = question);
     ELSE
-        RAISE NOTICE 'No unanswered questions found for the current game.';
-        RAISE NOTICE 'Game is finished.';
+        RAISE NOTICE 'No unanswered questions found for the current session.';
+        RAISE NOTICE 'Session is finished.';
         PERFORM decomp();
     END IF;
 END;
@@ -322,7 +355,7 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT)
+CREATE OR REPLACE FUNCTION answer_question(question INT, answer INT, player INT, game INT)
 RETURNS VOID AS $$
 DECLARE
 	correct BIT;
@@ -331,7 +364,7 @@ DECLARE
 	prevTpoints INT;
 	qPoints INT;
 BEGIN
-    IF((SELECT MAX(questionId) FROM features WHERE called = B'1') = question)
+    IF((SELECT MAX(questionId) FROM features WHERE called = B'1' AND gameId = game) = question)
     THEN
         IF(
             (SELECT rightAnswer

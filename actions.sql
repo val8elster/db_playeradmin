@@ -94,6 +94,10 @@ LIMIT 4;
 
 
 
+SELECT check_complete_teams();
+
+
+
 INSERT INTO questions(questionId, qname, answer1, answer2, answer3, answer4, rightanswer)
 VALUES
     (1, 'welche farbe hat der Himmel?', 'blau', 'gelb', 'pink', 'grün',1),

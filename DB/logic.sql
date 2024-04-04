@@ -205,22 +205,18 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION add_team_leader_to_plays()
     RETURNS TRIGGER AS $$
 DECLARE
-    game_session RECORD;
+    game INT;
 BEGIN
     UPDATE plays
     SET teamId = NEW.teamId
-    WHERE plays.playerId = NEW.teamLeaderId AND plays.gameId IS NULL;
+    WHERE plays.playerId = NEW.teamLeaderId;
 
-    FOR game_session IN (
-        SELECT gameId, sessionId
-        FROM partOf
-        WHERE gameId IS NOT NULL AND sessionId IS NOT NULL
-    ) LOOP
-            UPDATE plays
-            SET gameId = game_session.gameId
-            FROM players
-            WHERE teamId = NEW.teamId;
-        END LOOP;
+    game := (SELECT gameId FROM teams WHERE teamId = NEW.teamId);
+
+    UPDATE plays
+    SET gameId = game
+    WHERE plays.playerId = NEW.teamLeaderId;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -302,7 +298,7 @@ $$ LANGUAGE plpgsql;
 
 
 
-CREATE OR REPLACE FUNCTION followUp()
+CREATE OR REPLACE FUNCTION follow_up()
 RETURNS VOID AS $$
 DECLARE
     game INT;
@@ -415,7 +411,7 @@ BEGIN
             UPDATE statisticsPlayer SET questionRatio = (questionRatio + 1) WHERE playerId = player;
             
             PERFORM add_difficulty_answer(question, player);
-            PERFORM followUp();
+            PERFORM follow_up();
         ELSE
             correct := B'0';
             -- false

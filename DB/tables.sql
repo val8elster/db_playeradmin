@@ -59,7 +59,7 @@ CREATE TABLE answered (
 
 CREATE TABLE plays (
     teamId INT REFERENCES teams(teamId) ON DELETE SET NULL,
-    playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
+    playerId INT REFERENCES players(playerId) ON DELETE CASCADE,
     gameId INT REFERENCES games(gameId) ON DELETE SET NULL,
     PRIMARY KEY(playerId)
 );
@@ -95,7 +95,7 @@ CREATE TABLE statisticsQuestions (
 
 CREATE TABLE statisticsPlayer (
     placement INT UNIQUE,    
-	playerId INT REFERENCES players(playerId) ON DELETE SET NULL,
+	playerId INT REFERENCES players(playerId) ON DELETE CASCADE,
     points INT DEFAULT 0,
     questionRatio INT DEFAULT 0,
     difficulty1Answered INT DEFAULT 0,
@@ -105,4 +105,4 @@ CREATE TABLE statisticsPlayer (
     difficulty5Answered INT DEFAULT 0,
     proficiency INT DEFAULT 0,   
 	PRIMARY KEY(playerId)
-);
+)
